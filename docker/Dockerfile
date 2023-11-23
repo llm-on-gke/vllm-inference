@@ -26,7 +26,7 @@ COPY pyproject.toml pyproject.toml
 COPY vllm/__init__.py vllm/__init__.py
 
 # max jobs used by Ninja to build extensions
-ENV MAX_JOBS=$max_jobs
+ENV MAX_JOBS=8
 RUN python3 setup.py build_ext --inplace
 
 # image to run unit testing suite
