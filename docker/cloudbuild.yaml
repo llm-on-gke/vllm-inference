@@ -5,7 +5,7 @@ steps:
   args:
     - -c
     - |
-      docker build . -t us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm:latest  \
+      DOCKER_BUILDKIT=1 docker build . -t us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm:latest  \
       && docker push us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm:latest 
  
 images:
