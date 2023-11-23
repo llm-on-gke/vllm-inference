@@ -8,12 +8,12 @@ WORKDIR /workspace
 # install build and runtime dependencies
 COPY requirements.txt requirements.txt
 #RUN --mount=type=cache,target=/root/.cache/pip \
-pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 # install development dependencies
 COPY requirements-dev.txt requirements-dev.txt
 #RUN --mount=type=cache,target=/root/.cache/pip \
-pip install -r requirements-dev.txt
+RUN pip install -r requirements-dev.txt
 
 # image to build pytorch extensions
 FROM dev AS build
@@ -50,7 +50,7 @@ RUN apt-get update -y \
 WORKDIR /workspace
 COPY requirements.txt requirements.txt
 #RUN --mount=type=cache,target=/root/.cache/pip \
-pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 FROM vllm-base AS vllm
 COPY --from=build /workspace/vllm/*.so /workspace/vllm/
@@ -67,5 +67,4 @@ ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
 
 #COPY --from=build /workspace/vllm/*.so /workspace/vllm/
 #COPY vllm vllm
-
-ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+#ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
