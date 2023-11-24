@@ -5,7 +5,7 @@
 #gcloud container clusters create llama2-inference-cluster --num-nodes=1 --min-nodes=1 --max-nodes=3  --zone=us-central1-a     --accelerator="type=nvidia-l4,count=2,gpu-driver-version=default"  --machine-type="g2-standard-24" --enable-ip-alias --scopes="gke-default,storage-rw"
 
 # for L4 and spot private cluster
-export REGION=us-east1
+export REGION=us-west1
 export PROJECT_ID=$(gcloud config get project)
 
 gcloud container clusters create vllm-inference --location ${REGION} \
@@ -13,7 +13,7 @@ gcloud container clusters create vllm-inference --location ${REGION} \
   --enable-image-streaming --enable-shielded-nodes \
   --shielded-secure-boot --shielded-integrity-monitoring \
   --enable-ip-alias \
-  --node-locations=$REGION-a \
+  --node-locations=$REGION-b \
   --workload-pool=${PROJECT_ID}.svc.id.goog \
   --addons GcsFuseCsiDriver   \
   --no-enable-master-authorized-networks \

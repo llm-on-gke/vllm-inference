@@ -15,6 +15,8 @@ spec:
         app: vllm-inference-server
     spec:
       volumes:
+       - name: cache
+         emptyDir: {}
        - name: dshm
          emptyDir:
               medium: Memory
@@ -35,6 +37,9 @@ spec:
                 secretKeyRef:
                   name: huggingface
                   key: HF_TOKEN
+            - name: TRANSFORMERS_CACHE
+              value: /root/.cache
+
           args: ["--model-store=mistralai/Mistral-7B-v0.1",
                  "--gpu-memory-utilization=0.8",
                  "--trust-remote-code=true",
@@ -66,6 +71,8 @@ spec:
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
+            - mountPath: /root/.cache
+              name: cache
 
 ---
 apiVersion: v1
