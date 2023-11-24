@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  labels:
+    app: vllm-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-inference-server
+  template:
+    metadata:
+      labels:
+        app: vllm-inference-server
+    spec:
+      volumes:
+       - name: dshm
+         emptyDir:
+              medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+      serviceAccountName: triton
+      containers:
+        - name: vllm-inference-server
+          image: us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm:latest
+          imagePullPolicy: IfNotPresent
+
+          resources:
+            limits:
+              nvidia.com/gpu: 2
+          env:
+            - name: HUGGING_FACE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: huggingface
+                  key: HF_TOKEN
+          args: ["--model-store=mistralai/Mistral-7B-v0.1",
+                 "--gpu-memory-utilization=0.8",
+                 "--trust-remote-code=true",
+                 "--tensor-parallel-size=2"]
+          ports:
+            - containerPort: 8000
+              name: http
+            - containerPort: 8001
+              name: grpc
+          livenessProbe:
+            httpGet:
+              path: /v2/health/live
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v2/health/ready
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+
+          securityContext:
+            runAsUser: 1000
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triton-inference-server
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+  labels:
+    app: triton-inference-server   
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http-inference-server
+    - port: 8001
+      targetPort: grpc
+      name: grpc-inference-server
+    - port: 8002
+      targetPort: metrics
+      name: metrics-inference-server
+  selector:
+    app: triton-inference-server
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vllm-external
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "ingress-vllm"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: vllm-inference-server
+            port:
+              number: 8000
+             
