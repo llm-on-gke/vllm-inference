@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubi8 AS dev
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubi8 AS dev
 
 RUN apt-get update -y \
     && apt-get install -y python3-pip
