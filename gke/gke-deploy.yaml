@@ -40,9 +40,10 @@ spec:
             - name: TRANSFORMERS_CACHE
               value: /workspace/.cache
 
-          args: ["--model-store=mistralai/Mistral-7B-v0.1",
+          args: ["--model=mistralai/Mistral-7B-v0.1",
                  "--gpu-memory-utilization=0.8",
-                 "--trust-remote-code=true",
+                 "--disable-log-requests",
+                 "--trust-remote-code",
                  "--tensor-parallel-size=2"]
           ports:
             - containerPort: 8000
