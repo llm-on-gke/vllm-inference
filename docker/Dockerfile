@@ -1,7 +1,7 @@
 FROM nvidia/cuda:12.0.0-cudnn8-runtime-ubuntu20.04 AS dev
 
 ENV VLLM_VERSION=1.0.0
-ENV CUDA_VERSION=12.0
+ENV CUDA_VERSION=12.0.0
  
 # Set default values for environment variables
 ENV VLLM_HOME=/opt/vllm
@@ -13,4 +13,6 @@ RUN apt-get update -y \
 WORKDIR $VLLM_HOME
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install vllm
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install xformers==0.0.22
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
