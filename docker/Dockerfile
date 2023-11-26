@@ -1,5 +1,7 @@
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS dev
-
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04 AS dev
+RUN apt-get update -y \
+    && apt-get install -y python3-pip
+    
 WORKDIR /.cache
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install vllm
