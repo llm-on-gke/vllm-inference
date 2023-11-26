@@ -54,7 +54,7 @@ spec:
             httpGet:
               path: /v2/health/live
               port: http
-            initialDelaySeconds: 180
+            initialDelaySeconds: 600
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
@@ -62,7 +62,7 @@ spec:
             httpGet:
               path: /v2/health/ready
               port: http
-            initialDelaySeconds: 180
+            initialDelaySeconds: 600
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
