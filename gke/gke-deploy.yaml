@@ -44,7 +44,7 @@ spec:
                  "--gpu-memory-utilization=0.8",
                  "--disable-log-requests",
                  "--trust-remote-code",
-                 "--tensor-parallel-size=2"]
+                 "--tensor-parallel-size=1"]
           ports:
             - containerPort: 8000
               name: http
