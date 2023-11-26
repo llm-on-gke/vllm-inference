@@ -1,7 +1,4 @@
-FROM nvidia/cuda:12.1.0-cudnn8-devel-ubi8 AS dev
-
-RUN apt-get update -y \
-    && apt-get install -y python3-pip
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS dev
 
 WORKDIR /workspace
 RUN --mount=type=cache,target=/root/.cache/pip \
