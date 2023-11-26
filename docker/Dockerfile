@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:23.10-py3 AS dev
+FROM pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime AS dev
 
 ENV VLLM_VERSION=1.0.0
 ENV CUDA_VERSION=12.0.0
@@ -10,5 +10,5 @@ ENV CUDA_HOME=/usr/local/cuda
 WORKDIR $VLLM_HOME
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install vllm
-    
+
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
