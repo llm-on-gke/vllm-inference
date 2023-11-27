@@ -1,12 +1,10 @@
 # Use the official CUDA 11.8 base image
-FROM nvidia/cuda:11.8.0-base-ubuntu22.04
-RUN apt-get update -y \
-    && apt-get install -y python3-pip
-# Set environment variables for configuration
+FROM nvcr.io/nvidia/pytorch:22.12-py3
+
 
 # Install vllm
 RUN --mount=type=cache,target=/root/.cache/pip \
-  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+  torch==2.0.1+cu118, index_url="https://download.pytorch.org/whl/cu118"
 
 RUN --mount=type=cache,target=/root/.cache/pip \
    pip install https://github.com/vllm-project/vllm/releases/download/v0.2.1/vllm-0.2.1-cp310-cp310-manylinux1_x86_64.whl
