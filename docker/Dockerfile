@@ -1,5 +1,5 @@
 # Use the official CUDA 11.8 base image
-FROM nvidia/cuda:11.8-base
+FROM nvidia/cuda:11.8.0-base-ubuntu22.04
 
 # Set environment variables for configuration
 ENV VLLM_VERSION=1.0.0
