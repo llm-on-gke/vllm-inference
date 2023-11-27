@@ -39,7 +39,8 @@ spec:
                   key: HF_TOKEN
             - name: TRANSFORMERS_CACHE
               value: /.cache
-
+            - name: shm-size
+              value: 1g
           args: ["--model=mistralai/Mistral-7B-v0.1",
                  "--gpu-memory-utilization=0.8",
                  "--disable-log-requests",
