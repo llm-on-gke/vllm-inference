@@ -8,7 +8,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 RUN --mount=type=cache,target=/root/.cache/pip \
    pip install https://github.com/vllm-project/vllm/releases/download/v0.2.1/vllm-0.2.1-cp38-cp38-manylinux1_x86_64.whl
-
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install xformers==0.0.22
 
 # Set the entrypoint command
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
