@@ -4,5 +4,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 RUN pip uninstall torch -y
 RUN --mount=type=cache,target=/root/.cache/pip \
    pip install torch --upgrade --index-url https://download.pytorch.org/whl/cu118
-
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install xformers==0.0.22
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
