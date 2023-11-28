@@ -25,7 +25,7 @@ spec:
       serviceAccountName: triton
       containers:
         - name: vllm-inference-server
-          image: us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm:latest
+          image: vllm/vllm-openai
           imagePullPolicy: IfNotPresent
 
           resources:
@@ -41,6 +41,7 @@ spec:
               value: /.cache
             - name: shm-size
               value: 1g
+          command: ["python3", "-m", "vllm.entrypoints.api_server"]
           args: ["--model=mistralai/Mistral-7B-v0.1",
                  "--gpu-memory-utilization=0.8",
                  "--disable-log-requests",
