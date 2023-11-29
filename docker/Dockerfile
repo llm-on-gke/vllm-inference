@@ -6,9 +6,7 @@ WORKDIR /
 LABEL com.nvidia.volumes.needed=nvidia_driver
 
 COPY requirements.txt requirements.txt
-
-RUN pip install -r requirements.txt
-
-
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install -r requirements.txt
 # Set the entrypoint command
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.api_server"]
