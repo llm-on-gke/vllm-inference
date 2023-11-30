@@ -52,10 +52,10 @@ if you use Vertex image, you can set the Cloud Storage path of model, e.g., gs:/
 ## Tests
 
 Simple way: 
-kubectl portforward deploy/vllm-server -n triton 8000/8000
+kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}'
 
 Then use the following curl command to test:
-curl http://localhost:8000/generate \
+curl http://ClusterIP:8000/generate \
     -d '{
         "prompt": "San Francisco is a",
         "use_beam_search": true,
