@@ -41,7 +41,7 @@ spec:
               value: /.cache
             - name: shm-size
               value: 1g
-          command: ["python3", "-m", "vllm.entrypoints.api_server"]
+          command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
           args: ["--model=meta-llama/Llama-2-7b-hf",
                  "--gpu-memory-utilization=0.95",
                  "--disable-log-requests",
@@ -82,7 +82,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: vllm-external
+  name: vllm-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "ingress-vllm"
