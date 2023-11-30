@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: gradio
-        image: us-docker.pkg.dev/google-samples/containers/gke/gradio:v0.0.6
+        image: us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm-client:latest
         env:
           - name: LLM_URL
             value: "http://llm-service"
