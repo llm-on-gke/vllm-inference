@@ -15,10 +15,10 @@ spec:
       - name: gradio
         image: us-docker.pkg.dev/google-samples/containers/gke/gradio:v0.0.6
         env:
-          - name: MODEL_URL
+          - name: LLM_URL
             value: "http://llm-service"
-          - name: MODEL
-            value: "llama-2-7b-hf"
+          - name: LLM_NAME
+            value: "meta-llama/Llama-2-7b-hf"
           - name: MAX_TOKENS
             value: "400"
         resources:
