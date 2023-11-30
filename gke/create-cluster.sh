@@ -5,7 +5,7 @@
 #gcloud container clusters create llama2-inference-cluster --num-nodes=1 --min-nodes=1 --max-nodes=3  --zone=us-central1-a     --accelerator="type=nvidia-l4,count=2,gpu-driver-version=default"  --machine-type="g2-standard-24" --enable-ip-alias --scopes="gke-default,storage-rw"
 
 # for L4 and spot private cluster
-export REGION=us-west1
+export REGION=us-central1
 export PROJECT_ID=$(gcloud config get project)
 
 gcloud container clusters create vllm-inference --location ${REGION} \
@@ -18,6 +18,7 @@ gcloud container clusters create vllm-inference --location ${REGION} \
   --addons GcsFuseCsiDriver   \
   --no-enable-master-authorized-networks \
   --machine-type n2d-standard-4 \
+  --cluster-version 1.26.8-gke.200 \
   --num-nodes 1 --min-nodes 1 --max-nodes 3 \
   --ephemeral-storage-local-ssd=count=2 \
   --enable-ip-alias \
@@ -26,7 +27,7 @@ gcloud container clusters create vllm-inference --location ${REGION} \
   --scopes="gke-default,storage-rw"
 
 
-gcloud container node-pools create vllm-inference-pool --cluster vllm-inference  --accelerator type=nvidia-tesla-t4,count=2,gpu-driver-version=latest   --machine-type n1-standard-8 --ephemeral-storage-local-ssd=count=2   --enable-autoscaling --enable-image-streaming   --num-nodes=0 --min-nodes=0 --max-nodes=3   --shielded-secure-boot   --shielded-integrity-monitoring   --node-locations $REGION-a,$REGION-b --region $REGION --spot
+gcloud container node-pools create vllm-inference-pool --cluster vllm-inference  --accelerator type=nvidia-l4,count=1,gpu-driver-version=latest   --machine-type g2-standard-8 --ephemeral-storage-local-ssd=count=1   --enable-autoscaling --enable-image-streaming   --num-nodes=0 --min-nodes=0 --max-nodes=3   --shielded-secure-boot   --shielded-integrity-monitoring --node-version=1.26.8-gke.200  --node-locations $REGION-a,$REGION-b --region $REGION --spot
 
 kubectl create ns triton
 kubectl create serviceaccount triton --namespace triton

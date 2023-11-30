@@ -21,7 +21,7 @@ spec:
          emptyDir:
               medium: Memory
       nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+        cloud.google.com/gke-accelerator: nvidia-l4
       serviceAccountName: triton
       containers:
         - name: vllm-inference-server
