@@ -18,7 +18,7 @@ gcloud container clusters create vllm-inference --location ${REGION} \
   --addons GcsFuseCsiDriver   \
   --no-enable-master-authorized-networks \
   --machine-type n2d-standard-4 \
-  --cluster-version 1.26.8-gke.200 \
+  --cluster-version 1.27.5-gke.200 \
   --num-nodes 1 --min-nodes 1 --max-nodes 3 \
   --ephemeral-storage-local-ssd=count=2 \
   --enable-ip-alias \
