@@ -13,8 +13,16 @@ Optimized CUDA kernels
 
 vLLM has been used in Vertex AI Model Garden to deploy some Opensource LLM models
 
-## Opensource Models supported:
+## Opensource Models supported
 Llama2, Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/supported_models.html
+
+## Prerequisite: Huggingface API token
+Some models such as Llama2 will need Huggingface API token to download model files
+Meta access request: https://ai.meta.com/resources/models-and-libraries/llama-downloads/ need regisgter an email address to download
+
+Go to Hugging face, create account account with same email registered in Meta request. Then find Llama 2 model, fill out access request: https://huggingface.co/meta-llama/Llama-2-7b. Need to wait for a few hours with the approval email to be able to use Llama 2
+
+Get Hugging face access token from HF settings,
 
 ## GKE Cluster and Nodepools
 See the create-cluster.sh
