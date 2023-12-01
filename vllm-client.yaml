@@ -38,7 +38,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: gradio
+    app: vllm-client
   ports:
   - port: 8080
     targetPort: 7860

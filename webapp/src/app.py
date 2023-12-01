@@ -1,14 +1,12 @@
 import gradio as gr
 import requests
 import os
-
-
 from langchain.llms import VLLMOpenAI
 llm_url = os.environ.get('LLM_URL')
 llm_name= os.environ.get('LLM_NAME')
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
-    openai_api_base="http://{llm_url}/v1",
+    openai_api_base="{llm_url}/v1",
     model_name="{llm_name}",
     model_kwargs={"stop": ["."]},
 )
