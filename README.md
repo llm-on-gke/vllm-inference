@@ -10,6 +10,7 @@ Efficient management of attention key and value memory with PagedAttention
 Continuous batching of incoming requests
 
 Optimized CUDA kernels
+
 vLLM has been used in Vertex AI Model Garden to deploy some Opensource LLM models
 
 ## Opensource Models supported:
@@ -27,6 +28,8 @@ Reference: https://www.baseten.co/blog/llm-transformer-inference-guide/
 ### GKE Cluster
 Currently, tested in GKE 1.26, up to GKE1.27.5.GKE.200 only, issues to test with some of latest versions. If you experience errors in logs: 
 Can not find Nvidia driver, cuda initialization error. Then consider to switch to different GKE version may help resove the isssues.
+
+
 
 The default shell script will create a private GKE cluster, if you prefer to use public cluster with easy access, then remove the following options   
   --enable-ip-alias \
@@ -97,6 +100,26 @@ curl http://ClusterIP:8000/v1/completions \
         "temperature": 0
     }'
 ## Deploy WebApp
+
+Siince vLLM can expose different model as OpenAI style APIs, different models will be transparent applications how to access LLM models.  
+
+The sample app provided will use vLLM OpenAI library to initialize any model deployed through vLLM:
+```
+import gradio as gr
+import requests
+import os
+from langchain.llms import VLLMOpenAI
+llm_url = os.environ.get('LLM_URL')
+llm_name= os.environ.get('LLM_NAME')
+llm = VLLMOpenAI(
+    openai_api_key="EMPTY",
+    openai_api_base=f"{llm_url}/v1",
+    model_name=f"{llm_name}",
+    model_kwargs={"stop": ["."]},
+)
+```
+After that, you can use any other Langchain related libraries
+
 You need to build the webapp image:
 update the cloudbuild.yaml file under webapp directory, 
 then run the build
