@@ -68,37 +68,55 @@ env:
 
 
 ## vLLM model config parameters:
-In vllm-deploy.yml file, 
-Entrypoint, if you want Langchain and OpenAI style integration, you can use this:
+Update vllm-deploy.yml file, 
+
+You can override the command and arguments, 
+
+if you prefer to Langchain and OpenAI integration in applications, you can use this:
+
 command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
 
-or you can use the default entrypoint for pure vLLM APIs:
+or you can use different entrypoint for native vLLM APIs:
+
 command: ["python3", "-m", "vllm.entrypoints.api_server"]
 
-For the model related arguments
-See this doc: https://docs.vllm.ai/en/latest/models/engine_args.html
+To understand the vLLM model related arguments, See this doc: https://docs.vllm.ai/en/latest/models/engine_args.html
 
 You can adjust the model related parameters in args settings in gke-deploy.yaml 
+
 --model=ModelNameFromHuggingFace, replace with specific models from Huggingface, meta-llama/Llama-2-7b-hf, meta-llama/Llama-2-13b-hf, mistralai/Mistral-7B-v0.1, tiiuae/falcon-7b
 
-if you use Vertex image, you can set the Cloud Storage path of model, e.g., gs://vertex-model-garden-public-us-central1/llama2/llama2-13b-hf
+If you use Vertex vLLM image, --model value you can be full Cloud Storage path of model files, e.g., gs://vertex-model-garden-public-us-central1/llama2/llama2-13b-hf
+
+## Deploy the model to GKE
+After vllm-deploy.yaml file been updated with proper settings, execute the followin command:
+```
+kubectl apply -f vllm-deploy.yaml -n NamespaceName   
+```
+The following GKE artifacts will be created:
+a. vllm-server deployment
+b. Ingress
+b. Service with endpoint of LLM APIs, routing traffic through Ingress
+
 
 ## Tests
 
 Simple way: 
 kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n triton
 
-Then use the following curl command to test:
+Then use the following curl command to test inside the Cluster:
 curl http://ClusterIP:8000/v1/models
 
 curl http://ClusterIP:8000/v1/completions \
     -H "Content-Type: application/json" \
     -d '{
-        "model": "facebook/opt-125m",
+        "model": "meta-llama/Llama-2-7b-hf",
         "prompt": "San Francisco is a",
-        "max_tokens": 7,
-        "temperature": 0
+        "max_tokens": 100,
+        "temperature": 0.1
     }'
+
+
 ## Deploy WebApp
 
 Siince vLLM can expose different model as OpenAI style APIs, different models will be transparent applications how to access LLM models.  
