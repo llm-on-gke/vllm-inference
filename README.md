@@ -1,5 +1,5 @@
 # vllm-inference
-vLLM vLLM is a fast and easy-to-use library for LLM inference and serving.
+vLLM is a fast and easy-to-use library for LLM inference and serving.
 
 vLLM is fast with:
 
@@ -12,12 +12,19 @@ Continuous batching of incoming requests
 Optimized CUDA kernels
 
 ## Opensource Models supported:
-Llama2,Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/supported_models.html
+Llama2, Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/supported_models.html
 
 ## GKE Cluster and Nodepools
 See the create-cluster.sh
 Currently, tested in GKE 1.26, up to GKE1.27.5.GKE.200 only, issues to test with some of latest versions. If you experience errors in logs: 
 Can not find Nvidia driver, cuda initialization error. Then consider to switch to different GKE version may help resove the isssues
+
+The default script uses tesla-l4 1 GPU as example, which uses us-central1 region with following GPU related nodepool specs:
+
+--accelerator type=nvidia-l4,count=1,gpu-driver-version=latest   --machine-type g2-standard-8 --node-version=1.27.5.GKE.200
+
+You can choose to use 2 TESLA-T4 GPU with tweaks to the nodepool specs:
+--accelerator type=nvidia-tesla-t4,count=2,gpu-driver-version=latest   --machine-type n1-standard-8 --node-version=1.27.5.GKE.200
 
 ## Deploy model to GKE cluster
 See gke-deploy.yaml,
@@ -52,7 +59,7 @@ if you use Vertex image, you can set the Cloud Storage path of model, e.g., gs:/
 ## Tests
 
 Simple way: 
-kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}'
+kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n triton
 
 Then use the following curl command to test:
 curl http://ClusterIP:8000/generate \
