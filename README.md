@@ -49,11 +49,20 @@ env:
                   key: HF_TOKEN
 
 
-## vLLM model parameters:
+## vLLM model config parameters:
+In vllm-deploy.yml file, 
+Entrypoint, if you want Langchain and OpenAI style integration, you can use this:
+command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+
+or you can use the default entrypoint for pure vLLM APIs:
+command: ["python3", "-m", "vllm.entrypoints.api_server"]
+
+For the model related arguments
 See this doc: https://docs.vllm.ai/en/latest/models/engine_args.html
 
 You can adjust the model related parameters in args settings in gke-deploy.yaml 
---model=ModelNameFromHuggingFace
+--model=ModelNameFromHuggingFace, replace with specific models from Huggingface, meta-llama/Llama-2-7b-hf, meta-llama/Llama-2-13b-hf, mistralai/Mistral-7B-v0.1, tiiuae/falcon-7b
+
 if you use Vertex image, you can set the Cloud Storage path of model, e.g., gs://vertex-model-garden-public-us-central1/llama2/llama2-13b-hf
 
 ## Tests
@@ -62,15 +71,40 @@ Simple way:
 kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n triton
 
 Then use the following curl command to test:
-curl http://ClusterIP:8000/generate \
+curl http://ClusterIP:8000/v1/models
+
+curl http://ClusterIP:8000/v1/completions \
+    -H "Content-Type: application/json" \
     -d '{
+        "model": "facebook/opt-125m",
         "prompt": "San Francisco is a",
-        "use_beam_search": true,
-        "n": 4,
+        "max_tokens": 7,
         "temperature": 0
     }'
+## Deploy WebApp
+You need to build the webapp image:
+update the cloudbuild.yaml file under webapp directory, 
+then run the build
+```
+cd webapp
+gcloud builds submit. 
+```
 
+Then update the vllm-client.yaml file, 
+a. image: URI, replace with your own vllm-client image
+b. LLM server and name settings:
+ - name: LLM_URL
+            value: "http://llm-service"   (replace with the LLM svc ClusterIP here)
+- name: LLM_NAME
+            value: "meta-llama/Llama-2-7b-hf"  ( replace with your own Model setup earlier)
 
+Run the command to deploy webapp, 
+kubectl apply -f vllm-client.yaml -n triton
+kubectl get service/vllm-client -o jsonpath='{.spec.externalIP}' -n triton
+## Validations:
+
+Go to the external IP for the webapp, hptt://externalIP:8080, 
+and test a few questions.  
 
 
 
