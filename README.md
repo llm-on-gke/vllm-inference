@@ -17,15 +17,24 @@ Llama2, Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/
 
 ## GKE Cluster and Nodepools
 See the create-cluster.sh
+### Estimates of GPU type and number of GPU needed for model infereence:
+Estimate the size of a model in gigabytes by multiplying the number of parameters (in billions) by 2. This approach is based on a simple formula: with each parameter using 16 bits (or 2 bytes) of memory in half-precision, the memory usage in GB is approximately twice the number of parameters. Therefore, a 7B parameter model, for instance, will take up approximately 14 GB of memory. We can comfortably run a 7B parameter model in Nvidia L4 and still have about 10 GB of memory remaining as a buffer for inferencing. Alternatively, you can choose to have 2 Tesla-T4 GPUs with 32G by sharding model across both GPUs, but there will be impacts of moving data around.  
 
+### GKE Cluster
 Currently, tested in GKE 1.26, up to GKE1.27.5.GKE.200 only, issues to test with some of latest versions. If you experience errors in logs: 
-Can not find Nvidia driver, cuda initialization error. Then consider to switch to different GKE version may help resove the isssues
+Can not find Nvidia driver, cuda initialization error. Then consider to switch to different GKE version may help resove the isssues.
 
-The default script uses tesla-l4 1 GPU as example, which uses us-central1 region with following GPU related nodepool specs:
+The default shell script will create a private GKE cluster, if you prefer to use public cluster with easy access, then remove the following options   
+  --enable-ip-alias \
+  --enable-private-nodes  \
+  --master-ipv4-cidr 172.16.0.32/28 \
+
+### Nodepool
+The default script for nodepool uses nvidia-l4 1 GPU as example, which uses us-central1,  region with following GPU related nodepool specs:
 
 --accelerator type=nvidia-l4,count=1,gpu-driver-version=latest   --machine-type g2-standard-8 --node-version=1.27.5.GKE.200
 
-You can choose to use 2 TESLA-T4 GPU with tweaks to the nodepool specs:
+Alternatively, you can choose to use 2 TESLA-T4 GPU which can be us-west1 with tweaks to the nodepool specs:
 --accelerator type=nvidia-tesla-t4,count=2,gpu-driver-version=latest   --machine-type n1-standard-8 --node-version=1.27.5.GKE.200
 
 ## Deploy model to GKE cluster
