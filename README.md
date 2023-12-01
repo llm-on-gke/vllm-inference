@@ -112,7 +112,7 @@ curl http://ClusterIP:8000/v1/completions \
     -d '{
         "model": "meta-llama/Llama-2-7b-hf",
         "prompt": "San Francisco is a",
-        "max_tokens": 100,
+        "max_tokens": 250,
         "temperature": 0.1
     }'
 
@@ -157,6 +157,7 @@ b. LLM server and name settings:
 Run the command to deploy webapp, 
 kubectl apply -f vllm-client.yaml -n triton
 kubectl get service/vllm-client -o jsonpath='{.spec.externalIP}' -n triton
+
 ## Validations:
 
 Go to the external IP for the webapp, hptt://externalIP:8080, 
