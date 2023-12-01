@@ -6,8 +6,8 @@ llm_url = os.environ.get('LLM_URL')
 llm_name= os.environ.get('LLM_NAME')
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
-    openai_api_base="{llm_url}/v1",
-    model_name="{llm_name}",
+    openai_api_base=f"{llm_url}/v1",
+    model_name=f"{llm_name}",
     model_kwargs={"stop": ["."]},
 )
 
@@ -16,7 +16,7 @@ def predict(question):
     data = {"prompt": question}	
     print("Testing....")
     #res=requests.post(f"{llm_url}/v1/models/model:predict", json=data)
-    #print(res.json())
+    
     return llm(question)
 
 examples = [
