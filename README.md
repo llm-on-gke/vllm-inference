@@ -10,12 +10,14 @@ Efficient management of attention key and value memory with PagedAttention
 Continuous batching of incoming requests
 
 Optimized CUDA kernels
+vLLM has been used in Vertex AI Model Garden to deploy some Opensource LLM models
 
 ## Opensource Models supported:
 Llama2, Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/supported_models.html
 
 ## GKE Cluster and Nodepools
 See the create-cluster.sh
+
 Currently, tested in GKE 1.26, up to GKE1.27.5.GKE.200 only, issues to test with some of latest versions. If you experience errors in logs: 
 Can not find Nvidia driver, cuda initialization error. Then consider to switch to different GKE version may help resove the isssues
 
@@ -42,11 +44,11 @@ kubectl create secret generic huggingface --from-literal="HF_TOKEN=$HF_TOKEN" -n
 ```
 This GEK huggingface secrect is used to set the environment value in gke-deploy.yaml( need to keep the name: HUGGING_FACE_HUB_TOKEN ):
 env:
-            - name: HUGGING_FACE_HUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: huggingface
-                  key: HF_TOKEN
+    - name: HUGGING_FACE_HUB_TOKEN
+      valueFrom:
+            secretKeyRef:
+              name: huggingface
+              key: HF_TOKEN
 
 
 ## vLLM model config parameters:
