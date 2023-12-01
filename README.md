@@ -150,7 +150,7 @@ Then update the vllm-client.yaml file,
 a. image: URI, replace with your own vllm-client image
 b. LLM server and name settings:
  - name: LLM_URL
-            value: "http://llm-service"   (replace with the LLM svc ClusterIP here)
+            value: "http://CLusterIP:8000"   (replace with the full LLM svc endpoint including port)
 - name: LLM_NAME
             value: "meta-llama/Llama-2-7b-hf"  ( replace with your own Model setup earlier)
 

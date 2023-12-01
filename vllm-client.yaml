@@ -16,7 +16,7 @@ spec:
         image: us-east1-docker.pkg.dev/rick-vertex-ai/gke-llm/vllm-client:latest
         env:
           - name: LLM_URL
-            value: "http://llm-service"
+            value: "http://CLusterIP:8000"
           - name: LLM_NAME
             value: "meta-llama/Llama-2-7b-hf"
           - name: MAX_TOKENS
