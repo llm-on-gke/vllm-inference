@@ -17,8 +17,12 @@ Llama2, Mistril, Falcon, see full list in https://docs.vllm.ai/en/latest/models/
 
 ## GKE Cluster and Nodepools
 See the create-cluster.sh
-### Estimates of GPU type and number of GPU needed for model infereence:
+### Quick Estimates of GPU type and number of GPU needed for model infereence:
 Estimate the size of a model in gigabytes by multiplying the number of parameters (in billions) by 2. This approach is based on a simple formula: with each parameter using 16 bits (or 2 bytes) of memory in half-precision, the memory usage in GB is approximately twice the number of parameters. Therefore, a 7B parameter model, for instance, will take up approximately 14 GB of memory. We can comfortably run a 7B parameter model in Nvidia L4 and still have about 10 GB of memory remaining as a buffer for inferencing. Alternatively, you can choose to have 2 Tesla-T4 GPUs with 32G by sharding model across both GPUs, but there will be impacts of moving data around.  
+
+For Models with larger parameter size, resource requirements can be reduced through Quantize into lower precision bits. 
+Example, for Llama 2 70b model, you may quatize into float 4 bit precision, 
+then it only need 35G memory and can put into 2 L4(48G)GPU.  
 
 ### GKE Cluster
 Currently, tested in GKE 1.26, up to GKE1.27.5.GKE.200 only, issues to test with some of latest versions. If you experience errors in logs: 
