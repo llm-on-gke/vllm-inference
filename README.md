@@ -317,10 +317,13 @@ Check that the pod has been correctly scheduled in one of the nodes in the g2-st
 
 ## Tests
 
-Simple way: 
-kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n triton
+Simplely run the following command to get the cluster ip:
+```
+kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n $NAMESPACE
+```
 
-Then use the following curl command to test inside the Cluster:
+Then use the following curl command to test inside the Cluster(update the cluster IP first):
+```
 curl http://ClusterIP:8000/v1/models
 
 curl http://ClusterIP:8000/v1/completions \
@@ -331,7 +334,7 @@ curl http://ClusterIP:8000/v1/completions \
         "max_tokens": 250,
         "temperature": 0.1
     }'
-
+```
 
 ## Deploy WebApp
 
@@ -394,7 +397,7 @@ kubectl get service/vllm-client -o jsonpath='{.spec.externalIP}' -n $NAMESPACE
 ## Validations:
 
 Go to the external IP for the webapp, hptt://externalIP:8080, 
-and test a few questions.  
+and test a few questions from the web application.  
 
 ## Cleanups:
 Don’t forget to clean up the resources created in this article once you’ve finished experimenting with GKE and Mistral 7b, as keeping the cluster running for a long time can incur in important costs. To clean up, you just need to delete the GKE cluster:
