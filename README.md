@@ -1,10 +1,13 @@
 # Serving Open Source LLMs on GKE using vLLM framework
 
-TGI and vLLM are 2 common frameworks to address significant challenges on latencities to obtain an output from a LLM, primarily due to ever increasing LLM substantial sizes  
+This post shows how to serve Open source LLM models(Mistrial 7B, Llama2 etc) on Nvidia GPUs(L4, Tesla-T4, for example) running on Google Cloud Kubernetes Engine (GKE). It will help you understand the AI/ML ready features of GKE and how to use them to serve large language models make life of self-managing OSS LLM models in GKE not as dauting as you may originally think of .
+
+
+TGI and vLLM are 2 common frameworks to address significant challenges on slow latencities to obtain an output from a LLM, primarily due to ever increasing LLM substantial sizes to get responses back  
 
 𝐯𝐋𝐋𝐌(𝐕𝐞𝐫𝐬𝐚𝐭𝐢𝐥𝐞 𝐥𝐚𝐫𝐠𝐞 𝐥𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐦𝐨𝐝𝐞𝐥) is a framework designed to enhance the inference and serving speed of LLMs. It has demonstrated remarkable performance improvements compared to mainstream frameworks like Hugging Face’s Transformers, primarily because of a highly innovative new algorithm at its core.
 
-One key reason behind vLLM’s speed during inference is its use of the 𝐏𝐚𝐠𝐞𝐝 𝐀𝐭𝐭𝐞𝐧𝐭𝐢𝐨𝐧 𝐭𝐞𝐜𝐡𝐧𝐢𝐪𝐮𝐞. In traditional attention mechanisms, the keys and values computed are stored in GPU memory as a KV cache. This cache stores attention keys and values for previous tokens, which can consume a significant amount of memory, especially for large models and long sequences. These keys and values are also stored in a contiguous manner.
+One key reason behind vLLM’s speed during inference is its use of the 𝐏𝐚𝐠𝐞𝐝 𝐀𝐭𝐭𝐞𝐧𝐭𝐢𝐨𝐧 𝐭𝐞𝐜𝐡𝐧𝐢𝐪𝐮𝐞. In traditional attention mechanisms, the keys and values computed are stored in GPU memory as a KV cache. This cache stores attention keys and values for previous tokens, which can consume a significant amount of memory, especially for large models and long sequences. These keys and values are also stored in a contiguous manner. 
 
 𝐓𝐆𝐈 (𝐓𝐞𝐱𝐭-𝐆𝐞𝐧𝐞𝐫𝐚𝐭𝐢𝐨𝐧-𝐈𝐧𝐟𝐞𝐫𝐞𝐧𝐜𝐞) is another solution aimed at increasing the speed of LLM inference. It offers high-performance text generation using Tensor Parallelism and dynamic batching for popular open-source LLMs like StarCoder, BLOOM,Llama and other models.
 
@@ -20,7 +23,8 @@ One key reason behind vLLM’s speed during inference is its use of the 𝐏𝐚
 This post shows how to serve OSS LLMs(Mistral 7B, or Llama2) model on L4 GPUs running on Google Cloud Kubernetes Engine (GKE). It will help you understand the AI/ML ready features of GKE and how to use them to serve large language models.
 
 
-GKE is a fully managed service that allows you to run containerized workloads on Google Cloud. It’s a great choice for running large language models and AI/ML workloads because it is easy to set up, it’s secure, and it’s AI/ML batteries included. GKE installs the latest NVIDIA GPU drivers for you in GPU-enabled node pools, and gives you autoscaling and partitioning capabilities for GPUs out of the box, so you can easily scale your workloads to the size you need while keeping the costs under control. You can learn more about GKE’s AI/ML ready features in this Cloud OnAir covering Open AI/ML Platforms on GKE.
+GKE is a fully managed service that allows you to run containerized workloads on Google Cloud. It’s a great choice for running large language models and AI/ML workloads because it is easy to set up, it’s secure, and it’s AI/ML batteries included. GKE installs the latest NVIDIA GPU drivers for you in GPU-enabled node pools, and gives you autoscaling and partitioning capabilities for GPUs out of the box, so you can easily scale your workloads to the size you need while keeping the costs under control. 
+
 
 For example on how to serve Open source model( Mistral 7B) on GKE using TGI, please refer to this Google community blog:
 https://medium.com/google-cloud/serving-mistral-7b-on-l4-gpus-running-on-gke-25c6041dff27
