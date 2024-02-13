@@ -22,7 +22,7 @@ spec:
               medium: Memory
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
-      serviceAccountName: triton
+      serviceAccountName: vllm
       containers:
         - name: vllm-inference-server
           image: vllm/vllm-openai

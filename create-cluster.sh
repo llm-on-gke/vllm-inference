@@ -3,7 +3,7 @@ export PROJECT_ID=<your-project-id>
 export REGION=us-central1
 export ZONE_1=${REGION}-a # You may want to change the zone letter based on the region you selected above
 export ZONE_2=${REGION}-b # You may want to change the zone letter based on the region you selected above
-export CLUSTER_NAME=vllm-serving-cluster
+export CLUSTER_NAME=vllm-cluster
 export NAMESPACE=vllm
 gcloud config set project "$PROJECT_ID"
 gcloud config set compute/region "$REGION"
