@@ -1,5 +1,7 @@
 # for L4 and spot node-pools
 export PROJECT_ID=<your-project-id>
+export HF_TOKEN=<paste-your-own-token>
+
 export REGION=us-central1
 export ZONE_1=${REGION}-a # You may want to change the zone letter based on the region you selected above
 export ZONE_2=${REGION}-b # You may want to change the zone letter based on the region you selected above
@@ -30,11 +32,10 @@ for role in monitoring.metricWriter stackdriver.resourceMetadata.writer; do
   gcloud projects add-iam-policy-binding $PROJECT_ID --member=serviceAccount:${GCE_SA} --role=roles/${role}
 done
 
-
 gcloud container node-pools create vllm-inference-pool --cluster \
 $CLUSTER_NAME --accelerator type=nvidia-l4,count=1,gpu-driver-version=latest   --machine-type g2-standard-8 \
 --ephemeral-storage-local-ssd=count=1   --enable-autoscaling --enable-image-streaming   --num-nodes=0 --min-nodes=0 --max-nodes=3 \
---shielded-secure-boot   --shielded-integrity-monitoring --node-version=1.27.5-gke.200 --node-locations $ZONE_1,$ZONE_2 --region $REGION --spot
+--shielded-secure-boot   --shielded-in tegrity-monitoring --node-version=1.27.5-gke.200 --node-locations $ZONE_1,$ZONE_2 --region $REGION--spot
 
 kubectl create ns $NAMESPACE
 kubectl create serviceaccount $NAMESPACE --namespace $NAMESPACE
@@ -45,3 +46,5 @@ gcloud iam service-accounts add-iam-policy-binding $GCE_SA \
 kubectl annotate serviceaccount $NAMESPACE \
     --namespace $NAMESPACE \
     iam.gke.io/gcp-service-account=$GCE_SA
+
+kubectl create secret generic huggingface --from-literal="HF_TOKEN=$HF_TOKEN" -n $NAMESPACE

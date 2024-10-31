@@ -273,7 +273,7 @@ gcloud container clusters get-credentials $CLUSTER_NAME $REGION
 export HF_TOKEN=<paste-your-own-token>
 kubectl create secret generic huggingface --from-literal="HF_TOKEN=$HF_TOKEN" -n $NAMESPACE
 ```
-This GEK huggingface secrect is used to set the environment value in gke-deploy.yaml( need to keep the name: HUGGING_FACE_HUB_TOKEN ):
+This GKE huggingface secrect is used to set the environment value in gke-deploy.yaml( need to keep the name: HUGGING_FACE_HUB_TOKEN ):
 env:
     - name: HUGGING_FACE_HUB_TOKEN
       valueFrom:
@@ -333,7 +333,7 @@ curl http://ClusterIP:8000/v1/models
 curl http://ClusterIP:8000/v1/completions \
     -H "Content-Type: application/json" \
     -d '{
-        "model": "meta-llama/Llama-2-7b-hf",
+        "model": "google/gemma-1.1-2b-it",
         "prompt": "San Francisco is a",
         "max_tokens": 250,
         "temperature": 0.1
