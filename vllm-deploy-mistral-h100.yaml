@@ -49,7 +49,7 @@ spec:
                   key: HF_TOKEN
               value: /.cache
             - name: TRANSFORMERS_CACHE
-              value: /home/triton-server/.cache
+              value: /.cache
             - name: shm-size
               value: 5g
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
