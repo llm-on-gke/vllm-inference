@@ -47,8 +47,9 @@ spec:
                 secretKeyRef:
                   name: huggingface
                   key: HF_TOKEN
-            - name: TRANSFORMERS_CACHE
               value: /.cache
+            - name: TRANSFORMERS_CACHE
+              value: /home/triton-server/.cache
             - name: shm-size
               value: 5g
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
@@ -66,6 +67,7 @@ spec:
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
+            
             - mountPath: /.cache
               name: cache
 
