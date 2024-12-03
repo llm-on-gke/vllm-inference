@@ -66,6 +66,8 @@ spec:
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
+            - mountPath: /.triton
+              name: cache
             - mountPath: /.cache
               name: cache
 
