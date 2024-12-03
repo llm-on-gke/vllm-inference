@@ -47,7 +47,6 @@ spec:
                 secretKeyRef:
                   name: huggingface
                   key: HF_TOKEN
-              value: /.cache
             - name: TRANSFORMERS_CACHE
               value: /.cache
             - name: shm-size
@@ -67,7 +66,6 @@ spec:
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
-            
             - mountPath: /.cache
               name: cache
 
