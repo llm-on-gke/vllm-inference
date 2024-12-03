@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  labels:
+    app: vllm-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-inference-server
+  template:
+    metadata:
+      labels:
+        app: vllm-inference-server
+    spec:
+      volumes:
+       - name: cache
+         emptyDir: {}
+       - name: dshm
+         emptyDir:
+              medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-accelerator:  nvidia-h100-80gb
+        cloud.google.com/gke-spot: "true"
+      serviceAccountName: vllm
+      containers:
+        - name: vllm-inference-server
+          image: vllm/vllm-openai
+          imagePullPolicy: IfNotPresent
+
+          resources:
+            limits:
+              nvidia.com/gpu: 8
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: huggingface
+                  key: HF_TOKEN
+            - name: TRANSFORMERS_CACHE
+              value: /.cache
+            - name: shm-size
+              value: 1g
+          command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+          args: ["--model=mistralai/Mistral-7B-Instruct-v0.3",
+                 "--gpu-memory-utilization=0.95",
+                 "--disable-log-requests",
+                 "--trust-remote-code",
+                 "--port=8000",
+                 "--tensor-parallel-size=1"]
+          ports:
+            - containerPort: 8000
+              name: http
+          securityContext:
+            runAsUser: 1000
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
+            - mountPath: /.cache
+              name: cache
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-inference-server
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "vllm-backendconfig"}'
+  labels:
+    app: vllm-inference-server   
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http-inference-server
+    
+  selector:
+    app: vllm-inference-server
+
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: vllm-backendconfig
+spec:
+  # gRPC healthchecks not supported, use http endpoint instead https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration#direct_health
+  healthCheck:
+    checkIntervalSec: 15
+    timeoutSec: 15
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    type: HTTP                      # GKE Ingress controller only supports HTTP, HTTPS, or HTTP2
+    requestPath: /health   # Not a real endpoint, but should work (via prometheus metrics exporter)
+    port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vllm-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "ingress-vllm"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: vllm-inference-server
+            port:
+              number: 8000
+             
