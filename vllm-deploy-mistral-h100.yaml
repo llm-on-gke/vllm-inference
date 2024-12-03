@@ -20,6 +20,8 @@ spec:
        - name: dshm
          emptyDir:
               medium: Memory
+       - name: triton
+         emptyDir: {}
       nodeSelector:
         cloud.google.com/gke-accelerator:  nvidia-h100-80gb
         cloud.google.com/gke-spot: "true"
@@ -29,7 +31,7 @@ spec:
           image: vllm/vllm-openai
           imagePullPolicy: IfNotPresent
           securityContext:
-              privileged: true
+            privileged: true
           resources:
             requests:
               cpu: "4"
@@ -61,8 +63,6 @@ spec:
           ports:
             - containerPort: 8000
               name: http
-          securityContext:
-            runAsUser: 1000
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
@@ -70,6 +70,8 @@ spec:
               name: cache
             - mountPath: /.cache
               name: cache
+            - mountPath: /.triton
+              name: triton
 
 ---
 apiVersion: v1
