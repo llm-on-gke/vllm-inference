@@ -28,7 +28,8 @@ spec:
         - name: vllm-inference-server
           image: vllm/vllm-openai
           imagePullPolicy: IfNotPresent
-
+          securityContext:
+              privileged: true
           resources:
             requests:
               cpu: "4"
