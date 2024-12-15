@@ -1,7 +1,7 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'us-east1-docker.pkg.dev/$PROJECT_ID/gke-llm/vllm-client:latest', '.' ]
+  args: [ 'build', '-t', '$LOCATION-docker.pkg.dev/$PROJECT_ID/gke-llm/vllm-client:latest', '.' ]
 images:
-- 'us-east1-docker.pkg.dev/$PROJECT_ID/gke-llm/vllm-client:latest'
+- '$LOCATION-docker.pkg.dev/$PROJECT_ID/gke-llm/vllm-client:latest'
   # Push the container image to Artifact Registry, get sha256 of the image
   
