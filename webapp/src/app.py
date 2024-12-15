@@ -1,7 +1,7 @@
 import gradio as gr
 import requests
 import os
-from langchain.llms import VLLMOpenAI
+from langchain_community.llms import VLLMOpenAI
 llm_url = os.environ.get('LLM_URL')
 llm_name= os.environ.get('LLM_NAME')
 llm = VLLMOpenAI(
@@ -33,7 +33,7 @@ demo = gr.Interface(
     ],
     "text",
     examples=examples,
-    title= "LLama 2 Knowledge Bot" +logo_html
+    title= llm_name+" Knowledge Bot" +logo_html
     )
 
 demo.launch(server_name="0.0.0.0", server_port=7860)
