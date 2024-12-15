@@ -1,6 +1,6 @@
 gradio==3.37.0
 Flask==2.2.2
 requests==2.31.0
-openai
-vllm
 langchain
+langchain-community
+vllm
