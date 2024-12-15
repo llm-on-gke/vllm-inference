@@ -328,7 +328,9 @@ kubectl get service/vllm-server -o jsonpath='{.spec.clusterIP}' -n $NAMESPACE
 
 Then use the following curl command to test inside the Cluster(update the cluster IP first):
 ```
-curl http://ClusterIP:8000/v1/models
+kubectl run curl --image=curlimages/curl \
+    -it --rm --restart=Never \
+    -- "$CLUSTERIP:8000/v1/models" 
 
 curl http://ClusterIP:8000/v1/completions \
     -H "Content-Type: application/json" \

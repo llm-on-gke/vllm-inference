@@ -102,7 +102,7 @@ spec:
   # gRPC healthchecks not supported, use http endpoint instead https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration#direct_health
   healthCheck:
     checkIntervalSec: 15
-    timeoutSec: 15
+    timeoutSec: 500
     healthyThreshold: 1
     unhealthyThreshold: 2
     type: HTTP                      # GKE Ingress controller only supports HTTP, HTTPS, or HTTP2

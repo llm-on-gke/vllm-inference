@@ -22,6 +22,11 @@ spec:
               medium: Memory
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-spot: "true" #autopilot spot
+      tolerations: 
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
       serviceAccountName: vllm
       containers:
         - name: vllm-inference-server
@@ -42,7 +47,7 @@ spec:
             - name: shm-size
               value: 1g
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-          args: ["--model=meta-llama/Llama-2-7b-hf",
+          args: ["--model=google/gemma-2-2b-it",
                  "--gpu-memory-utilization=0.95",
                  "--disable-log-requests",
                  "--trust-remote-code",
