@@ -105,8 +105,8 @@ kind: Ingress
 metadata:
   name: vllm-ingress
   annotations:
-    kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: "ingress-vllm"
+    kubernetes.io/ingress.class: "gce-internal"
+    #kubernetes.io/ingress.global-static-ip-name: "ingress-vllm"
 spec:
   rules:
   - http:

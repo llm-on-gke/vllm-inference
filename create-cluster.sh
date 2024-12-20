@@ -11,6 +11,11 @@ gcloud config set project "$PROJECT_ID"
 gcloud config set compute/region "$REGION"
 gcloud config set compute/zone "$ZONE_1"
 
+#autopilot
+gcloud container clusters create-auto ${CLUSTER_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION}
+
 gcloud container clusters create $CLUSTER_NAME --location ${REGION} \
   --workload-pool ${PROJECT_ID}.svc.id.goog \
   --enable-image-streaming --enable-shielded-nodes \
@@ -35,7 +40,7 @@ done
 gcloud container node-pools create vllm-inference-pool --cluster \
 $CLUSTER_NAME --accelerator type=nvidia-l4,count=1,gpu-driver-version=latest   --machine-type g2-standard-8 \
 --ephemeral-storage-local-ssd=count=1   --enable-autoscaling --enable-image-streaming   --num-nodes=0 --min-nodes=0 --max-nodes=3 \
---shielded-secure-boot   --shielded-in tegrity-monitoring --node-version=1.27.5-gke.200 --node-locations $ZONE_1,$ZONE_2 --region $REGION--spot
+--shielded-secure-boot   --shielded-integrity-monitoring --node-version=1.27.5-gke.200 --node-locations $ZONE_1,$ZONE_2 --region $REGION --spot
 
 kubectl create ns $NAMESPACE
 kubectl create serviceaccount $NAMESPACE --namespace $NAMESPACE
@@ -48,3 +53,5 @@ kubectl annotate serviceaccount $NAMESPACE \
     iam.gke.io/gcp-service-account=$GCE_SA
 
 kubectl create secret generic huggingface --from-literal="HF_TOKEN=$HF_TOKEN" -n $NAMESPACE
+
+gcloud beta container clusters update $CLUSTER_NAME  --update-addons=HttpLoadBalancing=ENABLED --region $REGION

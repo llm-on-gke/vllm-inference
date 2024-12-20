@@ -20,9 +20,9 @@ def predict(question):
     return llm(question)
 
 examples = [
-    ["Who is Lionel Messi"],
-    ["Explain quantum physics"],
-    ["What is the capital of France and Germany"],
+    ["Who is Lionel Messi?"],
+    ["Explain quantum physics."],
+    ["What is the capital of France and Germany."],
 ]
 logo_html = '<div style="text-align: center;"><img src="file/falcon.jpeg" alt="Logo" style="height: 100px;"></div>'
 
