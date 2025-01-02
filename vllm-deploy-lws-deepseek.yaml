@@ -83,6 +83,8 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 15Gi
+        - name: models
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
