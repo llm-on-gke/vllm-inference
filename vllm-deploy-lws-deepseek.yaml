@@ -27,7 +27,7 @@ spec:
             command:
               - sh
               - -c
-              - "/workspace/vllm/examples/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
+              - "/vllm-workspace/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
                 python3 -m vllm.entrypoints.openai.api_server --port 8080 --model deepseek-ai/DeepSeek-V3 --tensor-parallel-size 8 --pipeline-parallel-size 2"
             resources:
               limits:
@@ -57,7 +57,7 @@ spec:
             command:
               - sh
               - -c
-              - "/workspace/vllm/examples/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
+              - "/vllm-workspace/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
             resources:
               limits:
                 nvidia.com/gpu: "8"
@@ -65,8 +65,8 @@ spec:
               - name: HUGGING_FACE_HUB_TOKEN
                 valueFrom:
                   secretKeyRef:
-                    name: hf-secret
-                    key: hf_api_token
+                    name: huggingface
+                    key: HF_TOKEN
             volumeMounts:
               - mountPath: /dev/shm
                 name: dshm   
