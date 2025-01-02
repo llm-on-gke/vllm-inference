@@ -17,7 +17,7 @@ spec:
           cloud.google.com/gke-accelerator: nvidia-h100-80gb
         containers:
           - name: vllm-leader
-            image: vllm/vllm-openai:latest #us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
+            image: us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
             env:
               - name: HUGGING_FACE_HUB_TOKEN
                 valueFrom:
@@ -27,8 +27,10 @@ spec:
             command:
               - sh
               - -c
-              - "#/vllm-workspace/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
-                python3 -m vllm.entrypoints.openai.api_server --port 8080 --model deepseek-ai/DeepSeek-V3 --tensor-parallel-size 8 --pipeline-parallel-size 2 --trust_remote_code"
+              - "/vllm-workspace/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
+                huggingface-cli login --token $HUGGING_FACE_HUB_TOKEN --add-to-git-credential;
+                huggingface-cli download deepseek-ai/DeepSeek-V3 --local-dir /models
+                python3 -m vllm.entrypoints.openai.api_server --port 8080 --model /models --tensor-parallel-size 8 --pipeline-parallel-size 2 --trust_remote_code"
             resources:
               limits:
                 nvidia.com/gpu: "8"
@@ -42,22 +44,26 @@ spec:
             volumeMounts:
               - mountPath: /dev/shm
                 name: dshm
+              - mountPath: /models
+                name: models
         volumes:
         - name: dshm
           emptyDir:
             medium: Memory
             sizeLimit: 15Gi
+        - name: models
+          emptyDir: {}
     workerTemplate:
       spec:
         nodeSelector:
           cloud.google.com/gke-accelerator: nvidia-h100-80gb
         containers:
           - name: vllm-worker
-            image: vllm/vllm-openai:latest #us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
+            image: us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
             command:
               - sh
               - -c
-              - "#/vllm-workspace/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
+              - "/vllm-workspace/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
             resources:
               limits:
                 nvidia.com/gpu: "8"
@@ -69,7 +75,9 @@ spec:
                     key: HF_TOKEN
             volumeMounts:
               - mountPath: /dev/shm
-                name: dshm   
+                name: dshm  
+              - mountPath: /models
+                name: models 
         volumes:
         - name: dshm
           emptyDir:
