@@ -17,7 +17,7 @@ spec:
           cloud.google.com/gke-accelerator: nvidia-h100-80gb
         containers:
           - name: vllm-leader
-            image: us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
+            image: vllm/vllm-openai:latest #us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
             env:
               - name: HUGGING_FACE_HUB_TOKEN
                 valueFrom:
@@ -27,7 +27,7 @@ spec:
             command:
               - sh
               - -c
-              - "/vllm-workspace/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
+              - "#/vllm-workspace/ray_init.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE); 
                 python3 -m vllm.entrypoints.openai.api_server --port 8080 --model deepseek-ai/DeepSeek-V3 --tensor-parallel-size 8 --pipeline-parallel-size 2"
             resources:
               limits:
@@ -53,11 +53,11 @@ spec:
           cloud.google.com/gke-accelerator: nvidia-h100-80gb
         containers:
           - name: vllm-worker
-            image: us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
+            image: vllm/vllm-openai:latest #us-east1-docker.pkg.dev/northam-ce-mlai-tpu/gke-llm/vllm-lws:latest
             command:
               - sh
               - -c
-              - "/vllm-workspace/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
+              - "#/vllm-workspace/ray_init.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
             resources:
               limits:
                 nvidia.com/gpu: "8"
