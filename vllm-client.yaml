@@ -18,9 +18,13 @@ spec:
           - name: LLM_URL
             value: "http://CLusterIP:8000"
           - name: LLM_NAME
-            value: "meta-llama/Llama-2-7b-hf"
+            value: "meta-llama/Llama-3.1-8B"
           - name: MAX_TOKENS
             value: "400"
+          - name: APIGEE_HOST
+            value: ""
+          - name: API_KEY
+            value: ""
         resources:
           requests:
             memory: "128Mi"
