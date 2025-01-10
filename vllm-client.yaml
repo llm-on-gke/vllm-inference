@@ -23,7 +23,7 @@ spec:
             value: "400"
           - name: APIGEE_HOST
             value: ""
-          - name: API_KEY
+          - name: APIKEY
             value: ""
         resources:
           requests:
