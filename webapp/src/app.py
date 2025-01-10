@@ -2,8 +2,13 @@ import gradio as gr
 import requests
 import os
 from langchain_community.llms import VLLMOpenAI
+import requests
+import json
+
 llm_url = os.environ.get('LLM_URL')
 llm_name= os.environ.get('LLM_NAME')
+APIGEE_HOST=os.environ.get('APIGEE_HOST')
+APIKEY=os.environ.get('APIKEY')
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
     openai_api_base=f"{llm_url}/v1",
@@ -15,20 +20,25 @@ llm = VLLMOpenAI(
 def predict(question):
     data = {"prompt": question}	
     print("Testing....")
+
+    url = 'https://'+APIGEE_HOST+'/v1/products?count=100'
+    headers = {'x-apikey': APIKEY, 'Content-type': 'application/json'}
+
+    resp = requests.get(url, headers = headers)
     #res=requests.post(f"{llm_url}/v1/models/model:predict", json=data)
     
-    return llm(question)
+    return llm("Summarize the product of "+question + " in the following text: "+ resp.text)
 
 examples = [
-    ["Who is Lionel Messi?"],
-    ["Explain quantum physics."],
-    ["What is the capital of France and Germany."],
+    ["Sunglass"],
+    ["Shoes"],
+    ["Clothes"],
 ]
 logo_html = '<div style="text-align: center;"><img src="file/falcon.jpeg" alt="Logo" style="height: 100px;"></div>'
 
 demo = gr.Interface(
     predict, 
-    [ gr.Textbox(label="Enter prompt:", value="Who is Lionel Messi?"),
+    [ gr.Textbox(label="Enter prompt:", value="Sunglass"),
       
     ],
     "text",
