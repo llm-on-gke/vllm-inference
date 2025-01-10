@@ -21,13 +21,13 @@ def predict(question):
     data = {"prompt": question}	
     print("Testing....")
 
-    url = 'https://'+APIGEE_HOST+'/v1/products?count=100'
+    url = f"https://{APIGEE_HOST}/v1/products?count=100"
     headers = {'x-apikey': APIKEY, 'Content-type': 'application/json'}
 
     resp = requests.get(url, headers = headers)
     #res=requests.post(f"{llm_url}/v1/models/model:predict", json=data)
     
-    return llm("Summarize the product of "+question + " in the following text: "+ resp.text)
+    return llm(f"Summarize the product of {question} in the following text: {resp.text}")
 
 examples = [
     ["Sunglass"],
