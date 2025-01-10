@@ -56,8 +56,6 @@ spec:
           ports:
             - containerPort: 8000
               name: http
-          securityContext:
-            runAsUser: 1000
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
