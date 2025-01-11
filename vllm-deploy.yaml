@@ -20,9 +20,6 @@ spec:
        - name: dshm
          emptyDir:
               medium: Memory
-       - name: chat-template-config
-         configMap:
-           name: chat-template-config
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
         cloud.google.com/gke-spot: "true" #autopilot spot
@@ -50,13 +47,12 @@ spec:
             - name: shm-size
               value: 1g
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-          args: ["--model=meta-llama/Llama-3.1-8B", #google/gemma-2-2b-it",
+          args: ["--model=meta-llama/Llama-3.1-8B-Instruct", #google/gemma-2-2b-it",
                  "--gpu-memory-utilization=0.95",
                  "--disable-log-requests",
                  "--trust-remote-code",
                  "--port=8000",
-                 "--tensor-parallel-size=1",
-                 "--chat-template /etc/chat-template-config/chat-template.j2"]
+                 "--tensor-parallel-size=1"]
           ports:
             - containerPort: 8000
               name: http
@@ -65,9 +61,6 @@ spec:
               name: dshm
             - mountPath: /.cache
               name: cache
-            - mountPath: /etc/chat-template-config
-              name: chat-template-config
-              readOnly: true
 
 ---
 apiVersion: v1
@@ -76,7 +69,7 @@ metadata:
   name: vllm-inference-server
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
-    cloud.google.com/backend-config: '{"default": "vllm-backendconfig"}'
+    #cloud.google.com/backend-config: '{"default": "vllm-backendconfig"}'
   labels:
     app: vllm-inference-server   
 spec:
@@ -90,20 +83,20 @@ spec:
     app: vllm-inference-server
 
 ---
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: vllm-backendconfig
-spec:
+#apiVersion: cloud.google.com/v1
+#kind: BackendConfig
+#metadata:
+#  name: vllm-backendconfig
+#spec:
   # gRPC healthchecks not supported, use http endpoint instead https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration#direct_health
-  healthCheck:
-    checkIntervalSec: 15
-    timeoutSec: 15
-    healthyThreshold: 1
-    unhealthyThreshold: 2
-    type: HTTP                      # GKE Ingress controller only supports HTTP, HTTPS, or HTTP2
-    requestPath: /health   # Not a real endpoint, but should work (via prometheus metrics exporter)
-    port: 8000
+#  healthCheck:
+#    checkIntervalSec: 15
+#    timeoutSec: 15
+#    healthyThreshold: 1
+#    unhealthyThreshold: 2
+#    type: HTTP                      # GKE Ingress controller only supports HTTP, HTTPS, or HTTP2
+#    requestPath: /health   # Not a real endpoint, but should work (via prometheus metrics exporter)
+#    port: 8000
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -123,99 +116,3 @@ spec:
             name: vllm-inference-server
             port:
               number: 8000
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: chat-template-config
-data:
-  chat-template.j2: |
-    {%- if messages[0]["role"] == "system" %}
-        {%- set system_message = messages[0]["content"] %}
-        {%- set loop_messages = messages[1:] %}
-    {%- else %}
-        {%- set loop_messages = messages %}
-    {%- endif %}
-    {%- if not tools is defined %}
-        {%- set tools = none %}
-    {%- endif %}
-    {%- set user_messages = loop_messages | selectattr("role", "equalto", "user") | list %}
-
-    {%- for message in loop_messages | rejectattr("role", "equalto", "tool") | rejectattr("role", "equalto", "tool_results") | selectattr("tool_calls", "undefined") %}
-        {%- if (message["role"] == "user") != (loop.index0 % 2 == 0) %}
-            {{- raise_exception("After the optional system message, conversation roles must alternate user/assistant/user/assistant/...") }}
-        {%- endif %}
-    {%- endfor %}
-
-    {{- bos_token }}
-    {%- for message in loop_messages %}
-        {%- if message["role"] == "user" %}
-            {%- if tools is not none and (message == user_messages[-1]) %}
-                {{- "[AVAILABLE_TOOLS] [" }}
-                {%- for tool in tools %}
-                    {%- set tool = tool.function %}
-                    {{- '{"type": "function", "function": {' }}
-                    {%- for key, val in tool.items() if key != "return" %}
-                        {%- if val is string %}
-                            {{- '"' + key + '": "' + val + '"' }}
-                        {%- else %}
-                            {{- '"' + key + '": ' + val|tojson }}
-                        {%- endif %}
-                        {%- if not loop.last %}
-                            {{- ", " }}
-                        {%- endif %}
-                    {%- endfor %}
-                    {{- "}}" }}
-                    {%- if not loop.last %}
-                        {{- ", " }}
-                    {%- else %}
-                        {{- "]" }}
-                    {%- endif %}
-                {%- endfor %}
-                {{- "[/AVAILABLE_TOOLS]" }}
-            {%- endif %}
-            {%- if loop.last and system_message is defined %}
-                {{- "[INST] " + system_message + "\n\n" + message["content"] + "[/INST]" }}
-            {%- else %}
-                {{- "[INST] " + message["content"] + "[/INST]" }}
-            {%- endif %}
-        {%- elif message["role"] == "tool_calls" or message.tool_calls is defined %}
-            {%- if message.tool_calls is defined %}
-                {%- set tool_calls = message.tool_calls %}
-            {%- else %}
-                {%- set tool_calls = message.content %}
-            {%- endif %}
-            {{- "[TOOL_CALLS] [" }}
-            {%- for tool_call in tool_calls %}
-                {%- set out = tool_call.function|tojson %}
-                {{- out[:-1] }}
-                {%- if not tool_call.id is defined or tool_call.id|length < 9 %}
-                    {{- raise_exception("Tool call IDs should be alphanumeric strings with length >= 9! (1)" + tool_call.id) }}
-                {%- endif %}
-                {{- ', "id": "' + tool_call.id[-9:] + '"}' }}
-                {%- if not loop.last %}
-                    {{- ", " }}
-                {%- else %}
-                    {{- "]" + eos_token }}
-                {%- endif %}
-            {%- endfor %}
-        {%- elif message["role"] == "assistant" %}
-            {{- " " + message["content"] + eos_token }}
-        {%- elif message["role"] == "tool_results" or message["role"] == "tool" %}
-            {%- if message.content is defined and message.content.content is defined %}
-                {%- set content = message.content.content %}
-            {%- else %}
-                {%- set content = message.content %}
-            {%- endif %}
-            {{- '[TOOL_RESULTS] {"content": ' + content|string + ", " }}
-            {%- if not message.tool_call_id is defined or message.tool_call_id|length < 9 %}
-                {{- raise_exception("Tool call IDs should be alphanumeric strings with length >= 9! (2)" + message.tool_call_id) }}
-            {%- endif %}
-            {{- '"call_id": "' + message.tool_call_id[-9:] + '"}[/TOOL_RESULTS]' }}
-        {%- else %}
-            {{- raise_exception("Only user and assistant roles are supported, with the exception of an initial optional system message!") }}
-        {%- endif %}
-    {%- endfor %}
-
-             
