@@ -2,7 +2,6 @@ import gradio as gr
 import requests
 import os
 from langchain_community.llms import VLLMOpenAI
-import requests
 import json
 
 llm_url = os.environ.get('LLM_URL')
@@ -18,16 +17,59 @@ llm = VLLMOpenAI(
 
 
 def predict(question):
-    data = {"prompt": question}	
-    print("Testing....")
-
     url = f"https://{APIGEE_HOST}/v1/products?count=100"
     headers = {'x-apikey': APIKEY, 'Content-type': 'application/json'}
 
     resp = requests.get(url, headers = headers)
-    #res=requests.post(f"{llm_url}/v1/models/model:predict", json=data)
+    products = resp.json()  # Parse JSON response
     
-    return llm(f"Summarize the product of {question} in the following text: {resp.text}")
+    # Create a more structured prompt for better results
+    system_prompt = """You are a helpful assistant that analyzes product information.
+    When describing products, focus on key details like:
+    - Product name
+    - Category
+    - Price
+    - Key features
+    Provide a concise and natural summary."""
+    
+    user_prompt = f"""I want information about {question}.
+    Here are the product details in JSON format:
+    {json.dumps(products, indent=2)}
+    
+    Please provide a natural summary focusing on products related to {question}. 
+    If no relevant products are found, please indicate that."""
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    
+    response = requests.post(
+        f"{llm_url}/v1/chat/completions",
+        headers={"Content-Type": "application/json"},
+        json={
+            "model": llm_name,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 600  # Adjust based on your needs
+        }
+    )
+    # Debug the response
+    response_data = response.json()
+    print("API Response:", response_data)  # For debugging
+        
+    if response.status_code != 200:
+        return f"Error: API returned status code {response.status_code}"
+            
+    # Check if response has the expected structure
+    if "choices" not in response_data:
+        return f"Error: Unexpected API response format: {response_data}"
+            
+    if not response_data["choices"]:
+            return "Error: No completion choices returned"
+            
+    return response_data["choices"][0]["message"]["content"].strip()
+         
 
 examples = [
     ["Sunglass"],
