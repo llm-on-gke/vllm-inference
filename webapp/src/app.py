@@ -3,6 +3,7 @@ import requests
 import os
 from langchain_community.llms import VLLMOpenAI
 import json
+from openai import OpenAI
 
 llm_url = os.environ.get('LLM_URL')
 llm_name= os.environ.get('LLM_NAME')
@@ -14,7 +15,11 @@ llm = VLLMOpenAI(
     model_name=f"{llm_name}",
     model_kwargs={"stop": ["."]},
 )
-
+#llm=OpenAI(
+#    api_key="EMPTY",
+#    base_url=f"{llm_url}/v1",
+#    model=f"{llm_name}",
+#)
 
 def predict(question):
     url = f"https://{APIGEE_HOST}/v1/products?count=100"
@@ -26,10 +31,10 @@ def predict(question):
     # Create a more structured prompt for better results
     system_prompt = """You are a helpful assistant that analyzes product information.
     When describing products, focus on key details like:
-    - Product name
-    - Category
-    - Price
-    - Key features
+    - name
+    - categories
+    - priceUsd
+    - description
     Provide a concise and natural summary."""
     
     user_prompt = f"""I want information about {question}.
@@ -44,6 +49,15 @@ def predict(question):
         {"role": "user", "content": user_prompt}
     ]
     
+    #chat_response = llm.chat.completions.create(
+    #model=f"{llm_name}",
+    #messages=[
+    #    {"role": "system", "content": "You are a helpful assistant."},
+    #    {"role": "user", "content": "Tell me a joke."},
+    #]
+    #)
+    #print("Chat response:", chat_response)
+
     response = requests.post(
         f"{llm_url}/v1/chat/completions",
         headers={"Content-Type": "application/json"},
