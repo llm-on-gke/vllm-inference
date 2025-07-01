@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-prefiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-prefiller
+  template:
+    metadata:
+      labels:
+        app: vllm-prefiller
+        llm-d.ai/inferenceServing: "true"
+        llm-d.ai/model: "Llama-4-Scout-17B-16E-Instruct"
+        llm-d.ai/role: "prefill"
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-h100-mega-80gb #nvidia-h200-141gb
+        cloud.google.com/gke-gpu-driver-version: default
+      tolerations:
+               - key: "nvidia.com/gpu"
+                 operator: "Exists"
+                 effect: "NoSchedule"
+      containers:
+        - name: vllm-prefiller
+          image: vllm/vllm-openai:latest #us-docker.pkg.dev/gke-gkit-dev/llm-d/vllm:latest
+          securityContext:
+             privileged: true
+          args:
+            - "--model"
+            - "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+            - "--port"
+            - "8000"
+            - "--tensor-parallel-size"
+            - "8"
+            - "--disable-log-requests"
+            - "--trust-remote-code"
+            - "--max-model-len" 
+            - "200000"
+            - "--kv-transfer-config"
+            - '{"kv_connector":"NixlConnector","kv_role":"kv_both"}'
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-secret
+                  key: hf_api_token
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0,1,2,3,4,5,6,7"
+            - name: UCX_TLS
+              value: "tcp"
+            - name: VLLM_NIXL_SIDE_CHANNEL_PORT
+              value: "5555"
+            - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: VLLM_LOGGING_LEVEL
+              value: DEBUG
+            - name: LD_LIBRARY_PATH
+              value: /usr/local/nvidia/lib64:/usr/local/cuda/lib64
+            #- name: VLLM_WORKER_MULTIPROC_METHOD
+            #  value: "fork"
+            #- name: VLLM_ENABLE_V1_MULTIPROCESSING
+            #  value: 1
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+            - containerPort: 5555
+              protocol: TCP
+            - containerPort: 5556
+              protocol: TCP
+            - containerPort: 5557
+              protocol: TCP
+            - containerPort: 5558
+              protocol: TCP
+            - containerPort: 5559
+              protocol: TCP
+            - containerPort: 5560
+              protocol: TCP
+            - containerPort: 5561
+              protocol: TCP
+            - containerPort: 5562
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /dev/shm # Needed for NCCL 
+              name: dshm
+          resources:
+            limits:
+              nvidia.com/gpu: 8
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
