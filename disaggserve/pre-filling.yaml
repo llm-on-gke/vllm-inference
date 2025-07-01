@@ -24,7 +24,7 @@ spec:
                  effect: "NoSchedule"
       containers:
         - name: vllm-prefiller
-          image: vllm/vllm-openai:latest #us-docker.pkg.dev/gke-gkit-dev/llm-d/vllm:latest
+          image: ghcr.io/llm-d/llm-d:0.0.8 #vllm/vllm-openai:latest #us-docker.pkg.dev/gke-gkit-dev/llm-d/vllm:latest
           securityContext:
              privileged: true
           args:

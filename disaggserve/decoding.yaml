@@ -24,7 +24,7 @@ spec:
                  effect: "NoSchedule"
       initContainers:
         - name: routing-proxy
-          image: ghcr.io/llm-d/llm-d:0.0.8 #us-docker.pkg.dev/gke-gkit-dev/llm-d/llm-d-routing-sidecar:0.0.6
+          image: ghcr.io/llm-d/llm-d-routing-sidecar:0.0.6 #us-docker.pkg.dev/gke-gkit-dev/llm-d/llm-d-routing-sidecar:0.0.6
           securityContext:
              privileged: true
           args:
@@ -39,7 +39,7 @@ spec:
           imagePullPolicy: Always
       containers:
         - name: vllm-decoder
-          image: vllm/vllm-openai:latest #us-docker.pkg.dev/gke-gkit-dev/llm-d/vllm:latest
+          image: ghcr.io/llm-d/llm-d:0.0.8 #us-docker.pkg.dev/gke-gkit-dev/llm-d/vllm:latest
           securityContext:
             privileged: true
           args:
