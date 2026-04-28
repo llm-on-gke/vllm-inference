@@ -29,12 +29,13 @@ spec:
       - key: "nvidia.com/gpu"
         operator: "Exists"
         effect: "NoSchedule"
-      #serviceAccountName: vllm
+      serviceAccountName: vllm
       containers:
         - name: vllm-inference-server
           image: vllm/vllm-openai:nightly
           imagePullPolicy: IfNotPresent
-
+          securityContext:
+                privileged: true
           resources:
             limits:
               nvidia.com/gpu: 8
