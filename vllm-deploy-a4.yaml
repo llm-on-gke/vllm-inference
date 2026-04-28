@@ -58,10 +58,10 @@ spec:
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
                #VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl vllm serve /models \
-               python3 -m vllm.entrypoints.openai.api_server --model /models \
+               python3 -m vllm.entrypoints.openai.api_server --model=/models \
                --port 8888 --tensor-parallel-size=8 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
-               --no-enable-prefix-caching --trust-remote-code &
+               --no-enable-prefix-caching --trust-remote-code 
           ports:
             - containerPort: 8000
               name: http
