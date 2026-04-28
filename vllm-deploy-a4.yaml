@@ -48,6 +48,8 @@ spec:
               value: /.cache
             - name: shm-size
               value: 20G
+            - name: HF_HUB_DOWNLOAD_TIMEOUT
+              value: "30"
           command:
               - bash
               - -xc
