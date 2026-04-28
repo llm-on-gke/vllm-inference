@@ -16,11 +16,11 @@ spec:
     spec:
       volumes:
        - name: library-dir-host
-               hostPath:
-                path: /home/kubernetes/bin/nvidia
+         hostPath:
+              path: /home/kubernetes/bin/nvidia
        - name: gib
-               hostPath:
-                path: /home/kubernetes/bin/gib
+         hostPath:
+              path: /home/kubernetes/bin/gib
        - name: cache
          emptyDir: {}
        - name: models
