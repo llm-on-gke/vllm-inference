@@ -17,12 +17,14 @@ spec:
       volumes:
        - name: cache
          emptyDir: {}
+       - name: models
+         emptyDir: {}
        - name: dshm
          emptyDir:
               medium: Memory
       nodeSelector:
          cloud.google.com/gke-accelerator:  nvidia-b200
-         cloud.google.com/gke-spot: "true"
+         #cloud.google.com/gke-spot: "true"
       tolerations: 
       - key: "nvidia.com/gpu"
         operator: "Exists"
@@ -30,7 +32,7 @@ spec:
       serviceAccountName: vllm
       containers:
         - name: vllm-inference-server
-          image: vllm/vllm-openai:nightly-5b8c30d62b754b575e043ce2fc0dcbf8a64f6306
+          image: vllm/vllm-openai:nightly
           imagePullPolicy: IfNotPresent
 
           resources:
@@ -50,8 +52,10 @@ spec:
               - bash
               - -xc
               - |
-               VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl vllm serve MiniMaxAI/MiniMax-M2.5 \
-               --port 8888 --tensor-parallel-size=4 --gpu-memory-utilization 0.95 \
+               huggingface-cli login --token $HUGGING_FACE_HUB_TOKEN ;
+               huggingface-cli download deepseek-ai/DeepSeek-V3 --local-dir /models;
+               VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl vllm serve /models \
+               --port 8888 --tensor-parallel-size=8 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
                --no-enable-prefix-caching --trust-remote-code &
           ports:
@@ -62,6 +66,8 @@ spec:
               name: dshm
             - mountPath: /.cache
               name: cache
+            - mountPaht: /models
+              name: models
 
 ---
 apiVersion: v1
