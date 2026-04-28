@@ -15,6 +15,12 @@ spec:
         app: vllm-inference-server
     spec:
       volumes:
+       - name: library-dir-host
+               hostPath:
+                path: /home/kubernetes/bin/nvidia
+       - name: gib
+               hostPath:
+                path: /home/kubernetes/bin/gib
        - name: cache
          emptyDir: {}
        - name: models
@@ -51,14 +57,16 @@ spec:
               value: 20G
             - name: HF_HUB_DOWNLOAD_TIMEOUT
               value: "30"
+            - name: LD_LIBRARY_PATH
+              value: /usr/local/nvidia/lib64
           command:
               - bash
               - -xc
               - |
+               source /usr/local/gib/scripts/set_nccl_env.sh
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
-               #VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl vllm serve /models \
-               python3 -m vllm.entrypoints.openai.api_server --model=/models \
+               SAFETENSORS_FAST_GPU=1 vllm serve /models \
                --port 8888 --tensor-parallel-size=8 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
                --no-enable-prefix-caching --trust-remote-code 
@@ -66,6 +74,10 @@ spec:
             - containerPort: 8000
               name: http
           volumeMounts:
+            - name: library-dir-host
+              mountPath: /usr/local/nvidia
+            - name: gib
+              mountPath: /usr/local/gib
             - mountPath: /dev/shm
               name: dshm
             - mountPath: /.cache
