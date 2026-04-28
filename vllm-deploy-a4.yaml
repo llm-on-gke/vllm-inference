@@ -42,18 +42,18 @@ spec:
             - name: HUGGING_FACE_HUB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: huggingface
-                  key: HF_TOKEN
+                  name: hf-secret
+                  key: hf_api_token
             - name: TRANSFORMERS_CACHE
               value: /.cache
             - name: shm-size
-              value: 1g
+              value: 20G
           command:
               - bash
               - -xc
               - |
-               huggingface-cli login --token $HUGGING_FACE_HUB_TOKEN ;
-               huggingface-cli download deepseek-ai/DeepSeek-V3 --local-dir /models;
+               hf-cli login --token $HUGGING_FACE_HUB_TOKEN ;
+               hf-cli download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
                VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl vllm serve /models \
                --port 8888 --tensor-parallel-size=8 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
