@@ -57,12 +57,16 @@ spec:
               value: 20G
             - name: HF_HUB_DOWNLOAD_TIMEOUT
               value: "30"
-            - name: LD_LIBRARY_PATH
-              value: /usr/local/nvidia/lib64
+            #- name: LD_LIBRARY_PATH
+            #  value: /usr/local/nvidia/lib64
           command:
               - bash
               - -xc
               - |
+               wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+               dpkg -i cuda-keyring_1.1-1_all.deb
+               apt update
+               apt install -y libnccl2=2.28.9-1+cuda13.0 libnccl-dev=2.28.9-1+cuda13.0
                source /usr/local/gib/scripts/set_nccl_env.sh
                export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:/usr/local/gib/lib64:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
