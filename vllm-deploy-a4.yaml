@@ -57,8 +57,8 @@ spec:
               value: 20G
             - name: HF_HUB_DOWNLOAD_TIMEOUT
               value: "30"
-            #- name: LD_LIBRARY_PATH
-            #  value: /usr/local/nvidia/lib64
+            - name: LD_LIBRARY_PATH
+              value: /usr/local/gib/lib64:/usr/local/nvidia/lib64
           command:
               - bash
               - -xc
@@ -70,9 +70,13 @@ spec:
                apt update
                apt install -y libnccl2=2.28.9-1+cuda13.0 libnccl-dev=2.28.9-1+cuda13.0
                source /usr/local/gib/scripts/set_nccl_env.sh
-               export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:/usr/local/gib/lib64:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH
+               export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH
                env | grep NCCL
-               ldconfig
+               # ldconfig $LD_LIBRARY_PATH
+               ldconfig /usr/local/nvidia/lib64/
+               echo "Added $LD_LIBRARY_PATH to ldconfig:"
+               ldconfig -p | grep libcuda | sed 's/^/  /'
+
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
                SAFETENSORS_FAST_GPU=1 vllm serve /models \
