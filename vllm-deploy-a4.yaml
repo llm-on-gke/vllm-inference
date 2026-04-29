@@ -65,8 +65,16 @@ spec:
               - bash
               - -xc
               - |
-               
-               source /usr/local/gib/scripts/set_nccl_env.sh
+               #source /usr/local/gib/scripts/set_nccl_env.sh
+               mkdir -p /tmp/clean_libs
+               cp -a /usr/local/nvidia/lib64/. /tmp/clean_libs/
+               rm -f /tmp/clean_libs/libnccl-net.so*
+               rm -f /tmp/clean_libs/libnccl-tuner.so*
+               rm -f /tmp/clean_libs/libnccl-net_internal.so*
+      
+               export LD_LIBRARY_PATH=/tmp/clean_libs
+               export NCCL_DEBUG=INFO
+               export VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
                SAFETENSORS_FAST_GPU=1 VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl  vllm serve /models \
