@@ -36,6 +36,8 @@ spec:
         operator: "Exists"
         effect: "NoSchedule"
       serviceAccountName: vllm
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: vllm-inference-server
           image: vllm/vllm-openai:nightly
@@ -63,24 +65,12 @@ spec:
               - bash
               - -xc
               - |
-               apt update
-               apt install -y wget 
-               wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-               dpkg -i cuda-keyring_1.1-1_all.deb
-               apt update
-               apt install -y libnccl2=2.28.9-1+cuda13.0 libnccl-dev=2.28.9-1+cuda13.0
+               
                source /usr/local/gib/scripts/set_nccl_env.sh
-               export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH
-               env | grep NCCL
-               # ldconfig $LD_LIBRARY_PATH
-               ldconfig /usr/local/nvidia/lib64/
-               echo "Added $LD_LIBRARY_PATH to ldconfig:"
-               ldconfig -p | grep libcuda | sed 's/^/  /'
-
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
-               SAFETENSORS_FAST_GPU=1 vllm serve /models \
-               --port 8888 --tensor-parallel-size=8 --gpu-memory-utilization 0.95 \
+               SAFETENSORS_FAST_GPU=1 VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl  vllm serve /models \
+               --port 8888 --tensor-parallel-size=4 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
                --no-enable-prefix-caching --trust-remote-code 
           ports:
