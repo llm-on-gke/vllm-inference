@@ -59,25 +59,33 @@ spec:
               value: 20G
             - name: HF_HUB_DOWNLOAD_TIMEOUT
               value: "30"
-            - name: LD_LIBRARY_PATH
-              value: /usr/local/gib/lib64:/usr/local/nvidia/lib64
+            #- name: LD_LIBRARY_PATH
+            #  value: /usr/local/gib/lib64:/usr/local/nvidia/lib64
           command:
               - bash
               - -xc
               - |
                #source /usr/local/gib/scripts/set_nccl_env.sh
-               mkdir -p /tmp/clean_libs
-               cp -a /usr/local/nvidia/lib64/. /tmp/clean_libs/
-               rm -f /tmp/clean_libs/libnccl-net.so*
-               rm -f /tmp/clean_libs/libnccl-tuner.so*
-               rm -f /tmp/clean_libs/libnccl-net_internal.so*
+               #mkdir -p /tmp/clean_libs
+               #cp -a /usr/local/nvidia/lib64/. /tmp/clean_libs/
+               #rm -f /tmp/clean_libs/libnccl-net.so*
+               #rm -f /tmp/clean_libs/libnccl-tuner.so*
+               #rm -f /tmp/clean_libs/libnccl-net_internal.so*
       
-               export LD_LIBRARY_PATH=/tmp/clean_libs
-               export NCCL_DEBUG=INFO
+               #export LD_LIBRARY_PATH=/tmp/clean_libs
+               #export NCCL_DEBUG=INFO
+
+               apt update
+               apt install -y --no-install-recommends gnupg
+               echo "deb http://developer.download.nvidia.com/devtools/repos/ubuntu$(source /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d .)/$(dpkg --print-architecture) /" | tee /etc/apt/sources.list.d/nvidia-devtools.list
+               apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+               apt update
+               apt install -y nsight-systems-cli
                export VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl
                hf auth login --token $HUGGING_FACE_HUB_TOKEN ;
                hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models 
-               SAFETENSORS_FAST_GPU=1 VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl  vllm serve /models \
+               SAFETENSORS_FAST_GPU=1 VLLM_FLASHINFER_ALLREDUCE_BACKEND=mnnvl \
+               vllm serve /models \
                --port 8888 --tensor-parallel-size=4 --gpu-memory-utilization 0.95 \
                --max-model-len 2248 --block-size=32 --kv-cache-dtype fp8 --stream-interval 20 \
                --no-enable-prefix-caching --trust-remote-code 
@@ -88,14 +96,6 @@ spec:
                done
                echo "Server is ready!"
       
-               apt update && apt install -y git
-               git clone https://github.com/SemiAnalysisAI/InferenceX
-               cd InferenceX
-
-               for i in {1..10}; 
-               do  
-                 python3 utils/bench_serving/benchmark_serving.py --model /models --backend vllm --base-url http://0.0.0.0:8888 --dataset-name random --random-input-len 1024 --random-output-len 1024 --random-range-ratio 0.8 --num-prompts 2560 --max-concurrency 256 --request-rate inf --ignore-eos --save-result --num-warmups 512 --percentile-metrics ttft,tpot,itl,e2el --trust-remote-code && sleep 10 ; 
-               done
           ports:
             - containerPort: 8000
               name: http
