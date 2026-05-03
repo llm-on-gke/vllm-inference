@@ -1,0 +1,724 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: infra-pd-inference-gateway
+  labels:
+    app.kubernetes.io/name: llm-d-infra
+    helm.sh/chart: llm-d-infra-v1.4.0
+    app.kubernetes.io/instance: infra-pd
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.4.0"
+    app.kubernetes.io/gateway: infra-pd-inference-gateway
+    app.kubernetes.io/component: inference-gateway
+spec:
+  gatewayClassName: "gke-l7-rilb"
+  listeners:
+    - port: 80
+      protocol: HTTP
+      name: default
+      allowedRoutes:
+        namespaces:
+          from: All
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: llm-d-pd-disaggregation
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: infra-pd-inference-gateway
+  rules:
+    - backendRefs:
+        - group: inference.networking.x-k8s.io
+          kind: InferencePool
+          name: gaie-pd
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+---
+# Source: inferencepool/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gaie-pd-epp
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+---
+# Source: inferencepool/templates/inferenceextension.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pd-gateway-sa-metrics-reader-secret
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+  annotations:
+    kubernetes.io/service-account.name: gaie-pd-epp
+type: kubernetes.io/service-account-token
+---
+# Source: inferencepool/templates/inferenceextension.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gaie-pd-epp
+  namespace: default
+data:
+  default-plugins.yaml: |
+    apiVersion: inference.networking.x-k8s.io/v1alpha1
+    kind: EndpointPickerConfig
+    plugins:
+    - type: queue-scorer
+    - type: kv-cache-utilization-scorer
+    - type: prefix-cache-scorer
+    schedulingProfiles:
+    - name: default
+      plugins:
+      - pluginRef: queue-scorer
+        weight: 2
+      - pluginRef: kv-cache-utilization-scorer
+        weight: 2
+      - pluginRef: prefix-cache-scorer
+        weight: 3
+  pd-config.yaml: |
+    # ALWAYS DO PD IN THIS EXAMPLE (always-disagg-pd-decider)
+    apiVersion: inference.networking.x-k8s.io/v1alpha1
+    kind: EndpointPickerConfig
+    featureGates:
+    - prepareDataPlugins
+    plugins:
+    - type: prefill-header-handler
+    - type: prefix-cache-scorer
+      parameters:
+        maxPrefixBlocksToMatch: 256
+        lruCapacityPerServer: 31250
+    - type: queue-scorer
+    - type: prefill-filter
+    - type: decode-filter
+    - type: max-score-picker
+    - type: kv-cache-utilization-scorer
+    - type: prefix-based-pd-decider
+      parameters:
+        nonCachedTokens: 16
+    - type: always-disagg-pd-decider
+    - type: pd-profile-handler
+      parameters:
+        primaryPort: 0
+        deciderPluginName: always-disagg-pd-decider
+    schedulingProfiles:
+    - name: prefill
+      plugins:
+      - pluginRef: prefill-filter
+      - pluginRef: max-score-picker
+      - pluginRef: prefix-cache-scorer
+        weight: 2
+      - pluginRef: queue-scorer
+        weight: 1
+      - pluginRef: kv-cache-utilization-scorer
+        weight: 1
+    - name: decode
+      plugins:
+      - pluginRef: decode-filter
+      - pluginRef: max-score-picker
+      - pluginRef: prefix-cache-scorer
+        weight: 2
+      - pluginRef: kv-cache-utilization-scorer
+        weight: 1
+      - pluginRef: queue-scorer
+        weight: 1
+    # All profiles using max score picker by default
+---
+# Source: inferencepool/templates/rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: "gaie-pd-default-epp"
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+rules:
+- apiGroups:
+    - authentication.k8s.io
+  resources:
+    - tokenreviews
+  verbs:
+    - create
+- apiGroups:
+    - authorization.k8s.io
+  resources:
+    - subjectaccessreviews
+  verbs:
+    - create
+- nonResourceURLs:
+    - "/metrics"
+  verbs:
+    - get
+---
+# Source: inferencepool/templates/rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: "gaie-pd-default-epp"
+subjects:
+- kind: ServiceAccount
+  name: gaie-pd-epp
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "gaie-pd-default-epp"
+---
+# Source: inferencepool/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gaie-pd-epp-non-sa
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+rules:
+- apiGroups: ["inference.networking.x-k8s.io"]
+  resources: ["inferenceobjectives", "inferencemodelrewrites"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["inference.networking.x-k8s.io"]
+  resources: ["inferencepools"]
+  verbs: ["get", "watch", "list"]
+---
+# Source: inferencepool/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gaie-pd-epp-sa
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+---
+# Source: inferencepool/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gaie-pd-epp-non-sa
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: gaie-pd-epp
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gaie-pd-epp-non-sa
+---
+# Source: inferencepool/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gaie-pd-epp-sa
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: gaie-pd-epp
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gaie-pd-epp-sa
+---
+# Source: inferencepool/templates/inferenceextension.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gaie-pd-epp
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+spec:
+  selector:
+    inferencepool: gaie-pd-epp
+  ports:
+    - name: grpc-ext-proc
+      protocol: TCP
+      port: 9002
+    - name: http-metrics
+      protocol: TCP
+      port: 9090
+  type: ClusterIP
+---
+# Source: inferencepool/templates/inferenceextension.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gaie-pd-epp
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+    inference.networking.k8s.io/igw-mode: inferencepool
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      inferencepool: gaie-pd-epp
+  template:
+    metadata:
+      labels:
+        inferencepool: gaie-pd-epp
+        inference.networking.k8s.io/igw-mode: inferencepool
+    spec:
+      serviceAccountName: gaie-pd-epp
+      terminationGracePeriodSeconds: 130
+      containers:
+        - name: epp
+          image: ghcr.io/llm-d/llm-d-inference-scheduler:v0.6.0
+          imagePullPolicy: Always
+          args:
+              - --pool-name
+              - gaie-pd
+              - --pool-namespace
+              - default
+              - --pool-group
+              - "inference.networking.x-k8s.io"
+              - --zap-encoder
+              - "json"
+              - --config-file
+              - "/config/pd-config.yaml"
+              - --tracing=false
+          resources:
+            limits:
+              memory: 32Gi
+            requests:
+              cpu: "8"
+              memory: 16Gi
+          ports:
+            - name: grpc
+              containerPort: 9002
+            - name: grpc-health
+              containerPort: 9003
+            - name: metrics
+              containerPort: 9090
+          livenessProbe:
+            grpc:
+              port: 9003
+              service: inference-extension
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: 9003
+              service: inference-extension
+            periodSeconds: 2
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: plugins-config-volume
+              mountPath: "/config"
+      volumes:
+        - name: plugins-config-volume
+          configMap:
+            name: gaie-pd-epp
+---
+# Source: inferencepool/templates/inferencepool.yaml
+apiVersion: "inference.networking.x-k8s.io/v1alpha2"
+kind: InferencePool
+metadata:
+  name: gaie-pd
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+spec:
+  targetPortNumber: 8000
+  selector:
+    llm-d.ai/guide: "pd-disaggregation"
+    llm-d.ai/inference-serving: "true"
+  extensionRef:
+    name: gaie-pd-epp
+    failureMode: FailOpen
+---
+# Source: inferencepool/templates/inferenceextension.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gaie-pd-epp-monitor
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.4.0"
+spec:
+  endpoints:
+  - interval: 10s
+    port: "http-metrics"
+    path: "/metrics"
+    authorization:
+      credentials:
+        key: token
+        name: pd-gateway-sa-metrics-reader-secret
+  jobLabel: gaie-pd-epp
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gaie-pd-epp
+      app.kubernetes.io/version: "v1.4.0"
+
+---
+# Source: llm-d-modelservice/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ms-pd-llm-d-modelservice
+  labels:
+    helm.sh/chart: llm-d-modelservice-v0.4.9
+    app.kubernetes.io/version: "v0.4.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: llm-d-modelservice/templates/decode-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-pd-llm-d-modelservice-decode
+  labels:
+    helm.sh/chart: llm-d-modelservice-v0.4.9
+    app.kubernetes.io/version: "v0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 50%
+  selector:
+    matchLabels:
+      llm-d.ai/inference-serving: "true"
+      llm-d.ai/role: decode
+      llm-d.ai/guide: "pd-disaggregation"
+  template:
+    metadata:
+      labels:
+        llm-d.ai/inference-serving: "true"
+        llm-d.ai/role: decode
+        llm-d.ai/guide: "pd-disaggregation"
+      annotations:
+        networking.gke.io/default-interface: eth0
+        networking.gke.io/interfaces: |
+          [
+            {"interfaceName":"eth0","network":"default"},
+            {"interfaceName":"eth2","network":"rdma-0"},
+            {"interfaceName":"eth3","network":"rdma-1"},
+            {"interfaceName":"eth4","network":"rdma-2"},
+            {"interfaceName":"eth5","network":"rdma-3"},
+            {"interfaceName":"eth6","network":"rdma-4"},
+            {"interfaceName":"eth7","network":"rdma-5"},
+            {"interfaceName":"eth8","network":"rdma-6"},
+            {"interfaceName":"eth9","network":"rdma-7"}
+          ]
+    spec:
+      initContainers:
+        - name: routing-proxy
+          args:
+            - --port=8000
+            - --vllm-port=8200
+            - --connector=nixlv2
+            - --zap-encoder=json
+            - --zap-log-level=debug
+            - --secure-proxy=false
+          image: ghcr.io/llm-d/llm-d-routing-sidecar:latest
+          imagePullPolicy: Always
+          env:
+          ports:
+            - containerPort: 8000
+          resources: {}
+          restartPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+    
+      serviceAccountName: ms-pd-llm-d-modelservice
+      
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 250Gi
+          name: shm
+        - hostPath:
+            path: /home/kubernetes/bin/nvidia
+            type: ""
+          name: library-dir-host
+        - hostPath:
+            path: /home/kubernetes/bin/gib
+            type: ""
+          name: gib
+        - emptyDir: {}
+          name: metrics-volume
+        - emptyDir: {}
+          name: torch-compile-cache
+      
+        - name: model-storage
+          emptyDir: {}
+        
+      
+      containers:
+        - name: vllm
+          image: ghcr.io/llm-d/llm-d-cuda:v0.5.1
+          
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+              source /usr/local/gib/scripts/set_nccl_env.sh
+              export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+              vllm serve Qwen/Qwen3-VL-235B-A22B-Instruct\
+                --port 8200 \
+                --served-model-name "Qwen/Qwen3-VL-235B-A22B-Instruct" \
+                --tensor-parallel-size 8 \
+                --block-size 128 \
+                --kv-transfer-config '{"kv_connector":"NixlConnector", "kv_role":"kv_both"}' \
+                --disable-log-requests \
+                --disable-uvicorn-access-log \
+                --max-model-len 32000
+          env:
+          - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: DP_SIZE
+            value: "1"
+          - name: TP_SIZE
+            value: "8"
+          - name: DP_SIZE_LOCAL
+            value: "1"
+          
+          - name: HF_HOME
+            value: /model-cache
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: llm-d-hf-token
+                key: HF_TOKEN
+          
+          ports:
+          - containerPort: 8200
+            name: vllm
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "128"
+              memory: 1Ti
+              nvidia.com/gpu: "8"
+            requests:
+              cpu: "128"
+              memory: 1Ti
+              nvidia.com/gpu: "8"
+          
+          volumeMounts:
+            - mountPath: /usr/local/nvidia
+              name: library-dir-host
+            - mountPath: /usr/local/gib
+              name: gib
+            - mountPath: /.config
+              name: metrics-volume
+            - mountPath: /dev/shm
+              name: shm
+            - mountPath: /.cache
+              name: torch-compile-cache
+            - name: model-storage
+              mountPath: /model-cache
+---
+# Source: llm-d-modelservice/templates/prefill-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-pd-llm-d-modelservice-prefill
+  labels:
+    helm.sh/chart: llm-d-modelservice-v0.4.9
+    app.kubernetes.io/version: "v0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 50%
+  selector:
+    matchLabels:
+      llm-d.ai/inference-serving: "true"
+      llm-d.ai/role: prefill
+      llm-d.ai/guide: "pd-disaggregation"
+  template:
+    metadata:
+      labels:
+        llm-d.ai/inference-serving: "true"
+        llm-d.ai/role: prefill
+        llm-d.ai/guide: "pd-disaggregation"
+      annotations:
+        networking.gke.io/default-interface: eth0
+        networking.gke.io/interfaces: |
+          [
+            {"interfaceName":"eth0","network":"default"},
+            {"interfaceName":"eth2","network":"rdma-0"},
+            {"interfaceName":"eth3","network":"rdma-1"},
+            {"interfaceName":"eth4","network":"rdma-2"},
+            {"interfaceName":"eth5","network":"rdma-3"},
+            {"interfaceName":"eth6","network":"rdma-4"},
+            {"interfaceName":"eth7","network":"rdma-5"},
+            {"interfaceName":"eth8","network":"rdma-6"},
+            {"interfaceName":"eth9","network":"rdma-7"}
+          ]
+    spec:
+    
+      serviceAccountName: ms-pd-llm-d-modelservice
+      
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 250Gi
+          name: shm
+        - hostPath:
+            path: /home/kubernetes/bin/nvidia
+            type: ""
+          name: library-dir-host
+        - hostPath:
+            path: /home/kubernetes/bin/gib
+            type: ""
+          name: gib
+        - emptyDir: {}
+          name: metrics-volume
+        - emptyDir: {}
+          name: torch-compile-cache
+        - name: model-storage
+          emptyDir: {}
+      
+      containers:
+        - name: vllm
+          image: ghcr.io/llm-d/llm-d-cuda:v0.5.1
+          
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+              source /usr/local/gib/scripts/set_nccl_env.sh
+              export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+              vllm serve Qwen/Qwen3-VL-235B-A22B-Instruct \
+                --port 8000 \
+                --served-model-name "Qwen/Qwen3-VL-235B-A22B-Instruct" \
+                --tensor-parallel-size 8 \
+                --block-size 128 \
+                --kv-transfer-config '{"kv_connector":"NixlConnector", "kv_role":"kv_both"}' \
+                --disable-log-requests \
+                --disable-uvicorn-access-log \
+                --max-model-len 32000 \
+                --max-num-seqs 500
+          env:
+          - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: DP_SIZE
+            value: "1"
+          - name: TP_SIZE
+            value: "8"
+          - name: DP_SIZE_LOCAL
+            value: "1"
+          - name: HF_HOME
+            value: /model-cache
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: llm-d-hf-token
+                key: HF_TOKEN
+          
+          
+          ports:
+          - containerPort: 8000
+            name: metrics
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "128"
+              memory: 1Ti
+              nvidia.com/gpu: "8"
+            requests:
+              cpu: "128"
+              memory: 1Ti
+              nvidia.com/gpu: "8"
+          
+          volumeMounts:
+            - mountPath: /usr/local/nvidia
+              name: library-dir-host
+            - mountPath: /usr/local/gib
+              name: gib
+            - mountPath: /.config
+              name: metrics-volume
+            - mountPath: /dev/shm
+              name: shm
+            - mountPath: /.cache
+              name: torch-compile-cache
+            - name: model-storage
+              mountPath: /model-cache
+---
+# Source: inferencepool/templates/gke.yaml
+kind: HealthCheckPolicy
+apiVersion: networking.gke.io/v1
+metadata:
+  name: gaie-pd
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+    app.kubernetes.io/version: "v1.3.1"
+spec:
+  targetRef:
+    group: "inference.networking.x-k8s.io"
+    kind: InferencePool
+    name: gaie-pd
+  default:
+    timeoutSec: 2
+    checkIntervalSec: 2
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: /health
+        port:  8000
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: gaie-pd
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gaie-pd-epp
+spec:
+  targetRef:
+    group: "inference.networking.x-k8s.io"
+    kind: InferencePool
+    name: gaie-pd
+  default:
+    timeoutSec: 1200
+    logging:
+      enabled: true
