@@ -20,6 +20,8 @@ gcloud container node-pools create a3-ultra-rdma-pool \
     --additional-node-network="network=warm-a3u-us1b-rdma-net,subnetwork=warm-a3u-us1b-rdma-sub-6" \
     --additional-node-network="network=warm-a3u-us1b-rdma-net,subnetwork=warm-a3u-us1b-rdma-sub-7"
 
+kubectl apply -f daemonset-preload-R580.yaml
+
 kubectl create secret generic llm-d-hf-token --from-literal=HF_TOKEN="${HF_TOKEN}"
 
 
