@@ -15,19 +15,6 @@ spec:
     resourceClaimTemplate:
       name: kimi-k3-compute-domain-channel
 ---
-apiVersion: resource.k8s.io/v1beta1
-kind: ResourceClaimTemplate
-metadata:
-  name: default-rdma
-  namespace: default
-spec:
-  spec:
-    devices:
-      requests:
-      - name: req-mrdma
-        deviceClassName: mrdma.google.com
-        allocationMode: All
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -107,8 +94,6 @@ spec:
       resourceClaims:
       - name: compute-domain-channel
         resourceClaimTemplateName: kimi-k3-compute-domain-channel
-      #- name: rdma
-      #  resourceClaimTemplateName: default-rdma
       containers:
       - name: sglang-container
         image: lmsysorg/sglang:dev-cu13
