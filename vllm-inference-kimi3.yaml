@@ -1,0 +1,224 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sglang-sa
+  namespace: default
+---
+apiVersion: resource.nvidia.com/v1beta1
+kind: ComputeDomain
+metadata:
+  name: kimi-k3-compute-domain
+  namespace: default
+spec:
+  numNodes: 4
+  channel:
+    resourceClaimTemplate:
+      name: kimi-k3-compute-domain-channel
+---
+apiVersion: resource.k8s.io/v1beta1
+kind: ResourceClaimTemplate
+metadata:
+  name: default-rdma
+  namespace: default
+spec:
+  spec:
+    devices:
+      requests:
+      - name: req-mrdma
+        deviceClassName: mrdma.google.com
+        allocationMode: All
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-kimi-k3-master
+  namespace: default
+  labels:
+    app: distributed-sglang-kimi-k3
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: distributed-sglang-kimi-k3
+    apps.kubernetes.io/pod-index: "0"
+  ports:
+  - name: dist-port
+    port: 20000
+    targetPort: 20000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-kimi-k3-serving
+  namespace: default
+  labels:
+    app: distributed-sglang-kimi-k3
+spec:
+  type: NodePort
+  selector:
+    app: distributed-sglang-kimi-k3
+    apps.kubernetes.io/pod-index: "0"
+  ports:
+  - name: http-inference
+    port: 30000
+    targetPort: 30000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: distributed-sglang-kimi-k3
+  namespace: default
+  labels:
+    app: distributed-sglang-kimi-k3
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: distributed-sglang-kimi-k3
+  serviceName: "sglang-kimi-k3-master"
+  template:
+    metadata:
+      labels:
+        app: distributed-sglang-kimi-k3
+        inference.networking.k8s.io/engine-type: sglang
+      annotations:
+        networking.gke.io/default-interface: 'eth0'
+        kueue.x-k8s.io/podset-required-topology: "cloud.google.com/gce-topology-subblock"
+    spec:
+      restartPolicy: Always
+      serviceAccountName: sglang-sa
+      hostNetwork: true
+      hostIPC: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        cloud.google.com/gke-nodepool: a4x-highgpu-4g-a4x-pool
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: present
+        effect: NoSchedule
+      - key: kubernetes.io/arch
+        operator: Equal
+        value: arm64
+        effect: NoSchedule
+      #- key: broken-dra
+      #  operator: Exists
+      #  effect: NoSchedule
+      resourceClaims:
+      - name: compute-domain-channel
+        resourceClaimTemplateName: kimi-k3-compute-domain-channel
+      #- name: rdma
+      #  resourceClaimTemplateName: default-rdma
+      containers:
+      - name: sglang-container
+        image: lmsysorg/sglang:dev-cu13
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["IPC_LOCK", "SYS_PTRACE", "NET_ADMIN"]
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - |
+          if [ -f /usr/local/gib/scripts/set_nccl_env.sh ]; then
+            source /usr/local/gib/scripts/set_nccl_env.sh
+          fi
+          nsys profile --trace-fork-before-exec=true \
+              --cuda-graph-trace=node \
+              --capture-range=cudaProfilerApi \
+              --capture-range-end=stop \
+              -o profile.out \
+          python3 -m sglang.launch_server \
+              --trust-remote-code \
+              --model-path moonshotai/Kimi-K3 \
+              --tp-size 16 \
+              --nnodes 4 \
+              --node-rank $POD_INDEX \
+              --dist-init-addr sglang-kimi-k3-master:20000 \
+              --dcp-size 16 \
+              --mem-fraction-static 0.85 \
+              --reasoning-parser kimi_k3 \
+              --tool-call-parser kimi_k3 \
+              --mamba-full-memory-ratio 3.99 \
+              --host 0.0.0.0 \
+              --port 30000 \
+              --speculative-algorithm DSPARK \
+              --speculative-draft-model-path RadixArk/Kimi-K3-DSpark \
+              --speculative-dspark-block-size 7 \
+              --enable-linear-replayssm-spec
+        env:
+        - name: POD_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+        - name: SGLANG_ENABLE_TP_MEMORY_INBALANCE_CHECK
+          value: "0"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: hf_api_token
+        - name: HF_HOME
+          value: /root/.cache/huggingface
+        - name: NCCL_NET
+          value: gIB
+        - name: LD_LIBRARY_PATH
+          value: /usr/local/nvidia/lib64:/usr/local/gib/lib64
+        - name: NCCL_DEBUG
+          value: INFO
+        - name: NCCL_DEBUG_SUBSYS
+          value: "INIT,NET"
+        - name: NCCL_SOCKET_IFNAME
+          value: "eth0,eth1"
+        - name: NCCL_IB_DISABLE
+          value: "1"
+        - name: NCCL_P2P_LEVEL
+          value: "SYS"
+        - name: NCCL_SOCKET_NTHREADS
+          value: "8"
+        - name: NCCL_NSOCKS_PERTHREAD
+          value: "8"
+        - name: NCCL_MIN_NCHANNELS
+          value: "8"
+        - name: OMP_NUM_THREADS
+          value: "24"
+        - name: SGLANG_SET_CPU_AFFINITY
+          value: "1"
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "expandable_segments:True"
+        resources:
+          limits:
+            nvidia.com/gpu: "4"
+          requests:
+            nvidia.com/gpu: "4"
+          claims:
+          - name: compute-domain-channel
+          #- name: rdma
+        volumeMounts:
+        - name: nvidia
+          mountPath: /usr/local/nvidia
+        - name: gib
+          mountPath: /usr/local/gib
+        - name: dshm
+          mountPath: /dev/shm
+        - name: hf-cache
+          mountPath: /root/.cache/huggingface
+      volumes:
+      - name: gib
+        hostPath:
+          path: /home/kubernetes/bin/gib
+      - name: nvidia
+        hostPath:
+          path: /home/kubernetes/bin/nvidia
+      - name: lib64
+        hostPath:
+          path: /lib64
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 250Gi
+      - name: hf-cache
+        emptyDir: {}
